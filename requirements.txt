@@ -1,0 +1,25 @@
+# Local Choose Your Own Adventure Game Dependencies
+# Using Ollama (local LLM) + Qdrant (local vector database)
+
+# Core LangChain components
+langchain>=0.1.0
+langchain-core>=0.1.0
+
+# Ollama integration
+langchain-ollama>=0.1.0
+
+# Qdrant vector database
+qdrant-client>=1.7.0
+langchain-qdrant>=0.1.0
+
+# Local embeddings
+sentence-transformers>=2.2.2
+
+# HTTP requests for health checks
+requests>=2.31.0
+
+# Additional dependencies for the updated code
+pydantic>=2.0.0
+
+# Optional: For better performance
+torch>=2.0.0  # Only if you want GPU acceleration for embeddings
