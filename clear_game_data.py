@@ -6,14 +6,17 @@ Clear Game Data Script
 This script clears all saved adventure data from the Qdrant vector database.
 Use this to reset your game progress or clean up old sessions.
 
+Note: Story definitions are now stored in stories.json and are not affected by this script.
+
 Usage:
     python clear_game_data.py
 
 Features:
 - Connects to Qdrant database
-- Lists existing game sessions
+- Lists existing game sessions (each stored in separate collections)
 - Allows selective or complete data clearing
 - Provides confirmation prompts for safety
+- Stories remain safe in stories.json file
 """
 
 import os
@@ -38,43 +41,56 @@ def test_qdrant_connection(client: QdrantClient) -> bool:
         return False
 
 def get_all_sessions(client: QdrantClient) -> List[str]:
-    """Get all unique session IDs from the database."""
+    """Get all unique session IDs by looking for session-specific collections."""
     try:
-        # Get all points from the collection
-        search_result = client.scroll(
-            collection_name=COLLECTION_NAME,
-            limit=10000,  # Large limit to get all sessions
-            with_payload=True
-        )
+        # Get all collections
+        collections = client.get_collections()
+        collection_names = [c.name for c in collections.collections]
         
-        session_ids = set()
+        # Filter for chat history collections (format: chat_history_<session_id>)
+        session_ids = []
         session_details = {}
         
-        for point in search_result[0]:
-            if 'session_id' in point.payload:
-                session_id = point.payload['session_id']
-                session_ids.add(session_id)
+        for name in collection_names:
+            if name.startswith('chat_history_adventure_session_'):
+                # Extract session ID from collection name
+                session_id = name.replace('chat_history_', '')
+                session_ids.append(session_id)
                 
-                # Collect session details
-                if session_id not in session_details:
+                # Get session details from the collection
+                try:
+                    search_result = client.scroll(
+                        collection_name=name,
+                        limit=1000,
+                        with_payload=True
+                    )
+                    
+                    session_details[session_id] = {
+                        'messages': len(search_result[0]),
+                        'character_name': 'Unknown',
+                        'last_activity': 0,
+                        'collection_name': name
+                    }
+                    
+                    # Extract character name and last activity from messages
+                    for point in search_result[0]:
+                        if 'character_name' in point.payload:
+                            session_details[session_id]['character_name'] = point.payload['character_name']
+                        
+                        if 'timestamp' in point.payload:
+                            if point.payload['timestamp'] > session_details[session_id]['last_activity']:
+                                session_details[session_id]['last_activity'] = point.payload['timestamp']
+                
+                except Exception as e:
+                    print(f"Warning: Could not read details for session {session_id}: {e}")
                     session_details[session_id] = {
                         'messages': 0,
                         'character_name': 'Unknown',
-                        'last_activity': 0
+                        'last_activity': 0,
+                        'collection_name': name
                     }
-                
-                session_details[session_id]['messages'] += 1
-                
-                # Get character name if available
-                if 'character_name' in point.payload:
-                    session_details[session_id]['character_name'] = point.payload['character_name']
-                
-                # Track latest timestamp
-                if 'timestamp' in point.payload:
-                    if point.payload['timestamp'] > session_details[session_id]['last_activity']:
-                        session_details[session_id]['last_activity'] = point.payload['timestamp']
         
-        return list(session_ids), session_details
+        return session_ids, session_details
     
     except Exception as e:
         print(f"Error retrieving sessions: {e}")
@@ -108,42 +124,33 @@ def display_sessions(session_ids: List[str], session_details: dict) -> None:
         print(f"   Last Activity: {format_timestamp(details.get('last_activity', 0))}")
         print("-" * 40)
 
-def clear_specific_session(client: QdrantClient, session_id: str) -> bool:
-    """Clear a specific session from the database."""
+def clear_specific_session(client: QdrantClient, session_id: str, session_details: dict) -> bool:
+    """Clear a specific session by deleting its collection."""
     try:
-        # Delete all points for this session
-        client.delete(
-            collection_name=COLLECTION_NAME,
-            points_selector=Filter(
-                must=[
-                    FieldCondition(
-                        key="session_id",
-                        match=MatchValue(value=session_id)
-                    )
-                ]
-            )
-        )
-        print(f"✓ Successfully cleared session: {session_id[-12:]}")
+        collection_name = session_details[session_id]['collection_name']
+        # Delete the entire collection for this session
+        client.delete_collection(collection_name=collection_name)
+        print(f"✓ Successfully cleared session: {session_id[-12:]} (collection: {collection_name})")
         return True
     except Exception as e:
         print(f"✗ Error clearing session {session_id[-12:]}: {e}")
         return False
 
-def clear_all_sessions(client: QdrantClient) -> bool:
-    """Clear the entire collection."""
+def clear_all_sessions(client: QdrantClient, session_details: dict) -> bool:
+    """Clear all game sessions by deleting their collections."""
     try:
-        # Delete the entire collection
-        client.delete_collection(collection_name=COLLECTION_NAME)
-        print(f"✓ Successfully deleted collection: {COLLECTION_NAME}")
+        deleted_count = 0
+        for session_id, details in session_details.items():
+            try:
+                collection_name = details['collection_name']
+                client.delete_collection(collection_name=collection_name)
+                deleted_count += 1
+                print(f"✓ Deleted collection: {collection_name}")
+            except Exception as e:
+                print(f"✗ Error deleting collection {details['collection_name']}: {e}")
         
-        # Recreate the collection
-        from qdrant_client.models import VectorParams, Distance
-        client.create_collection(
-            collection_name=COLLECTION_NAME,
-            vectors_config=VectorParams(size=384, distance=Distance.COSINE)
-        )
-        print(f"✓ Recreated empty collection: {COLLECTION_NAME}")
-        return True
+        print(f"✓ Successfully deleted {deleted_count} session collection(s)")
+        return deleted_count > 0
     except Exception as e:
         print(f"✗ Error clearing all sessions: {e}")
         return False
@@ -173,21 +180,12 @@ def main():
             print("Run: docker-compose up -d")
             return
         
-        # Check if collection exists
-        try:
-            collections = qdrant_client.get_collections().collections
-            collection_names = [c.name for c in collections]
-            
-            if COLLECTION_NAME not in collection_names:
-                print(f"Collection '{COLLECTION_NAME}' does not exist.")
-                print("No game data to clear.")
-                return
-        except Exception as e:
-            print(f"Error checking collections: {e}")
-            return
-        
-        # Get all sessions
+        # Check if any session collections exist
         session_ids, session_details = get_all_sessions(qdrant_client)
+        
+        if not session_ids:
+            print("No game sessions found. Database is already clean!")
+            return
         
         if not session_ids:
             print("No game sessions found. Database is already clean!")
@@ -226,7 +224,7 @@ def main():
                 character = session_details[selected_session].get('character_name', 'Unknown')
                 
                 if get_user_confirmation(f"Clear session {short_id} (Character: {character})?"):
-                    if clear_specific_session(qdrant_client, selected_session):
+                    if clear_specific_session(qdrant_client, selected_session, session_details):
                         print("\n✓ Session cleared successfully!")
                     else:
                         print("\n✗ Failed to clear session.")
@@ -244,7 +242,7 @@ def main():
                 print("   - All character names and progress")
                 
                 if get_user_confirmation("Are you SURE you want to clear ALL game data?"):
-                    if clear_all_sessions(qdrant_client):
+                    if clear_all_sessions(qdrant_client, session_details):
                         print("\n✓ All game data cleared successfully!")
                     else:
                         print("\n✗ Failed to clear all data.")

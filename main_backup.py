@@ -15,45 +15,90 @@ from langchain_core.output_parsers import StrOutputParser
 from sentence_transformers import SentenceTransformer
 import json
 
-# Suppress LaChain deprecation warnings for cleaner output
+# Suppress LagChain deprecation warnings for cleaner output
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="langchain")
 
 class StoryManager:
-    """Manage story definitions from local JSON file."""
+    """Manage story definitions and selection from separate Qdrant collection."""
     
-    def __init__(self, stories_file: str = "stories.json"):
-        self.stories_file = stories_file
-        self._stories_cache = None
+    def __init__(self, qdrant_client: QdrantClient, collection_name: str = "story_definitions"):
+        self.client = qdrant_client
+        self.collection_name = collection_name
+        self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
+        self._ensure_collection()
     
-    def _load_stories(self) -> List[Dict[str, Any]]:
-        """Load stories from JSON file with caching."""
-        if self._stories_cache is None:
-            try:
-                if os.path.exists(self.stories_file):
-                    with open(self.stories_file, 'r', encoding='utf-8') as f:
-                        self._stories_cache = json.load(f)
-                        print(f"✓ Loaded {len(self._stories_cache)} stories from {self.stories_file}")
-                else:
-                    print(f"⚠️  Stories file {self.stories_file} not found. Using default story.")
-                    self._stories_cache = []
-            except Exception as e:
-                print(f"❌ Error loading stories from {self.stories_file}: {e}")
-                self._stories_cache = []
-        
-        return self._stories_cache
+    def _ensure_collection(self):
+        """Ensure the story definitions collection exists."""
+        try:
+            collections = self.client.get_collections().collections
+            collection_names = [c.name for c in collections]
+            
+            if self.collection_name not in collection_names:
+                self.client.create_collection(
+                    collection_name=self.collection_name,
+                    vectors_config=VectorParams(size=384, distance=Distance.COSINE)
+                )
+                print(f"Created story definitions collection: {self.collection_name}")
+        except Exception as e:
+            print(f"Error ensuring story collection: {e}")
     
     def get_all_stories(self) -> List[Dict[str, Any]]:
-        """Get all available stories from the JSON file."""
-        stories = self._load_stories()
-        return sorted(stories, key=lambda x: x.get('name', ''))
+        """Get all available stories from the database."""
+        try:
+            search_result = self.client.scroll(
+                collection_name=self.collection_name,
+                scroll_filter=Filter(
+                    must=[
+                        FieldCondition(
+                            key="type",
+                            match=MatchValue(value="story_definition")
+                        )
+                    ]
+                ),
+                limit=100,
+                with_payload=True
+            )
+            
+            stories = []
+            for point in search_result[0]:
+                story_data = point.payload.copy()
+                story_data.pop('type', None)  # Remove the type field
+                stories.append(story_data)
+            
+            return sorted(stories, key=lambda x: x.get('name', ''))
+        except Exception as e:
+            print(f"Error retrieving stories: {e}")
+            return []
     
     def get_story_by_id(self, story_id: str) -> Optional[Dict[str, Any]]:
-        """Get a specific story by ID from the JSON file."""
-        stories = self._load_stories()
-        for story in stories:
-            if story.get('id') == story_id:
-                return story
-        return None
+        """Get a specific story by ID from payload."""
+        try:
+            search_result = self.client.scroll(
+                collection_name=self.collection_name,
+                scroll_filter=Filter(
+                    must=[
+                        FieldCondition(
+                            key="type",
+                            match=MatchValue(value="story_definition")
+                        ),
+                        FieldCondition(
+                            key="id",
+                            match=MatchValue(value=story_id)
+                        )
+                    ]
+                ),
+                limit=1,
+                with_payload=True
+            )
+            
+            if search_result[0]:
+                story_data = search_result[0][0].payload.copy()
+                story_data.pop('type', None)
+                return story_data
+            return None
+        except Exception as e:
+            print(f"Error retrieving story {story_id}: {e}")
+            return None
     
     def get_default_story(self) -> Dict[str, Any]:
         """Get a default story if no others are available."""
@@ -66,11 +111,6 @@ class StoryManager:
             'difficulty': 'medium',
             'setting': 'Fantasy World'
         }
-    
-    def reload_stories(self) -> None:
-        """Reload stories from file (clears cache)."""
-        self._stories_cache = None
-        print("🔄 Story cache cleared. Stories will be reloaded on next access.")
 
 class QdrantChatMessageHistory(BaseChatMessageHistory):
     """Custom chat message history using Qdrant vector database with session-specific collections."""
@@ -413,7 +453,8 @@ def display_story_selector(story_manager: StoryManager) -> str:
     stories = story_manager.get_all_stories()
     
     if not stories:
-        print("No stories found in stories.json. Please check that stories.json exists and contains valid story definitions.")
+        print("No stories found in database. Using default story.")
+        print("Tip: Run 'python story_loader.py' to load stories from stories.json")
         return None
     
     print("\n" + "=" * 70)
@@ -509,9 +550,9 @@ def main():
             print("Run: docker-compose up -d")
             return
         
-        # Initialize Story Manager (JSON-based)
-        print("Loading story definitions from JSON...")
-        story_manager = StoryManager("stories.json")
+        # Initialize Story Manager
+        print("Loading story definitions...")
+        story_manager = StoryManager(qdrant_client)
         
         # Initialize Ollama
         print(f"Initializing Ollama with model: {OLLAMA_MODEL}")
@@ -613,7 +654,7 @@ STORY CONTEXT:
 - Genre: {genre}
 - Setting: {setting}
 - Difficulty: {difficulty}
-- Character: {{character_name}}
+- Character: {character_name}
 
 STORY PROMPT:
 {story_prompt}
@@ -645,10 +686,33 @@ AI:"""
 
 
 
+and ultimately determining whether {character_name} cracks the case or becomes another casualty of the city’s shadows.
 
+CURRENT TURN: {turn_count + 1}
+
+IMPORTANT RULES:
+1. Start by asking the player to choose some kind of weapons that will be used later in the game
+2. Have a few paths that lead to success
+3. CRITICAL: DO NOT allow the player to die until after turn 10. Before turn 10, if the player makes dangerous choices, have them face consequences but survive (injured, lost, setbacks, etc.)
+4. After turn 10, some paths may lead to death. If the user dies, generate a response that explains the death and ends in the text: "The End."
+5. Keep responses engaging but concise (2-3 paragraphs max)
+6. Create a rich, layered story with character development and meaningful choices
+
+IMPORTANT FORMAT REQUIREMENT:
+ALWAYS end your response with exactly 3 numbered choices for the player:
+1. [First suggested action]
+2. [Second suggested action] 
+3. [Third suggested action]
+
+Make these choices varied and interesting - include combat, dialogue, exploration, creative solutions, etc.
+The player will also have the option to choose "4" for their own custom action.
+
+Here is the chat history: {{chat_history}}
+Human: {{human_input}}
+AI:"""
 
         prompt = PromptTemplate(
-            input_variables=["character_name", "chat_history", "human_input"],
+            input_variables=["chat_history", "human_input"],
             template=template
         )
 
@@ -669,7 +733,6 @@ AI:"""
         # Create the chain
         chain = (
             {
-                "character_name": lambda x: character_name,
                 "chat_history": lambda x: format_chat_history(),
                 "human_input": RunnablePassthrough()
             }
