@@ -239,6 +239,81 @@ class QdrantChatMessageHistory(BaseChatMessageHistory):
             return None  # No story selected
         except Exception:
             return None  # No story selected
+
+    def store_character_choice(self, choice_type: str, choice: str) -> None:
+        """Store character creation choices (weapon, skill, tool)."""
+        try:
+            embedding = self.encoder.encode(f"Character {choice_type}: {choice}").tolist()
+            
+            point = PointStruct(
+                id=str(uuid.uuid4()),
+                vector=embedding,
+                payload={
+                    "session_id": self.session_id,
+                    "message": f"Selected {choice_type}: {choice}",
+                    "type": "character_choice",
+                    "choice_type": choice_type,  # "weapon", "skill", "tool"
+                    "choice": choice,
+                    "timestamp": time.time()
+                }
+            )
+            
+            self.client.upsert(
+                collection_name=self.collection_name,
+                points=[point]
+            )
+        except Exception as e:
+            print(f"Error storing character choice: {e}")
+
+    def get_character_choices(self) -> Dict[str, str]:
+        """Retrieve all character creation choices."""
+        try:
+            from qdrant_client.models import Filter, FieldCondition, MatchValue
+            # Search for character choices
+            search_result = self.client.scroll(
+                collection_name=self.collection_name,
+                scroll_filter=Filter(
+                    must=[
+                        FieldCondition(
+                            key="session_id",
+                            match=MatchValue(value=self.session_id)
+                        ),
+                        FieldCondition(
+                            key="type",
+                            match=MatchValue(value="character_choice")
+                        )
+                    ]
+                ),
+                limit=10,
+                with_payload=True
+            )
+            
+            choices = {}
+            for point in search_result[0]:
+                payload = point.payload
+                if "choice_type" in payload and "choice" in payload:
+                    choices[payload["choice_type"]] = payload["choice"]
+            
+            return choices
+        except Exception:
+            return {}
+
+    def get_character_creation_state(self) -> str:
+        """Get the current character creation state (weapon, skill, tool, or complete)."""
+        choices = self.get_character_choices()
+        
+        if "weapon" not in choices:
+            return "weapon"
+        elif "skill" not in choices:
+            return "skill"
+        elif "tool" not in choices:
+            return "tool"
+        else:
+            return "complete"
+
+    def is_character_creation_complete(self) -> bool:
+        """Check if character creation is complete."""
+        return self.get_character_creation_state() == "complete"
     
     def clear(self) -> None:
         """Clear all messages for this session."""
@@ -450,6 +525,100 @@ def display_story_selector(story_manager: StoryManager) -> str:
         except ValueError:
             print("Please enter a valid number.")
 
+# Add character creation display functions
+def display_character_creation_step(step: str, character_name: str, genre: str, setting: str) -> str:
+    """Display character creation step and get AI to generate choices."""
+    templates = {
+        "weapon": f"""You are helping {character_name} choose their starting weapon for a {genre} adventure set in {setting}.
+
+Generate exactly 3 weapon options appropriate for this genre and setting. Present them as:
+
+1. [Weapon name]: [Brief description]
+2. [Weapon name]: [Brief description] 
+3. [Weapon name]: [Brief description]
+
+Make each weapon distinct and interesting, fitting the {genre} genre in a {setting} setting.""",
+
+        "skill": f"""You are helping {character_name} choose their starting skill for a {genre} adventure set in {setting}.
+
+Generate exactly 3 skill options appropriate for this genre and setting. Present them as:
+
+1. [Skill name]: [Brief description]
+2. [Skill name]: [Brief description]
+3. [Skill name]: [Brief description]
+
+Make each skill distinct and useful, fitting the {genre} genre in a {setting} setting.""",
+
+        "tool": f"""You are helping {character_name} choose their starting tool for a {genre} adventure set in {setting}.
+
+Generate exactly 3 tool options appropriate for this genre and setting. Present them as:
+
+1. [Tool name]: [Brief description]
+2. [Tool name]: [Brief description]
+3. [Tool name]: [Brief description]
+
+Make each tool distinct and useful, fitting the {genre} genre in a {setting} setting."""
+    }
+    
+    return templates[step]
+
+def handle_character_creation(message_history: 'QdrantChatMessageHistory', llm: OllamaLLM, character_name: str, genre: str, setting: str) -> bool:
+    """Handle the character creation process. Returns True when complete."""
+    current_state = message_history.get_character_creation_state()
+    
+    if current_state == "complete":
+        return True
+    
+    step_names = {
+        "weapon": "⚔️ CHOOSE YOUR WEAPON",
+        "skill": "🎯 CHOOSE YOUR SKILL", 
+        "tool": "🔧 CHOOSE YOUR TOOL"
+    }
+    
+    print(f"\n" + "═" * 60)
+    print(f"{step_names[current_state]}")
+    print("═" * 60)
+    
+    # Generate AI choices for this step
+    prompt = display_character_creation_step(current_state, character_name, genre, setting)
+    response = llm.invoke(prompt)
+    print(response.strip())
+    print("═" * 60)
+    
+    # Get user choice
+    while True:
+        choice = input(f"\n🎯 Choose your {current_state} (1, 2, or 3): ").strip()
+        if choice in ['1', '2', '3']:
+            # Extract the chosen option from AI response
+            lines = response.strip().split('\n')
+            choice_lines = [line for line in lines if line.strip().startswith(f"{choice}.")]
+            if choice_lines:
+                chosen_option = choice_lines[0].strip()
+                # Store the choice
+                message_history.store_character_choice(current_state, chosen_option)
+                print(f"\n✓ Selected: {chosen_option}")
+                return False  # Not complete yet, need to check next step
+            else:
+                print("Error parsing choice. Please try again.")
+        else:
+            print("Please enter 1, 2, or 3.")
+
+def display_character_summary(message_history: 'QdrantChatMessageHistory', character_name: str) -> str:
+    """Display the character's final loadout and return it as a string for the story."""
+    choices = message_history.get_character_choices()
+    
+    print(f"\n" + "═" * 60)
+    print(f"🎭 {character_name.upper()}'S LOADOUT")
+    print("═" * 60)
+    print(f"⚔️ Weapon: {choices.get('weapon', 'None')}")
+    print(f"🎯 Skill: {choices.get('skill', 'None')}")
+    print(f"🔧 Tool: {choices.get('tool', 'None')}")
+    print("═" * 60)
+    print("\nYour adventure begins now!")
+    
+    # Return formatted string for AI context
+    return f"Character {character_name} has chosen:\n- Weapon: {choices.get('weapon', 'None')}\n- Skill: {choices.get('skill', 'None')}\n- Tool: {choices.get('tool', 'None')}"
+
 def select_existing_session(session_ids: List[str], qdrant_client: QdrantClient, story_manager: StoryManager) -> str:
     """Let user select from existing sessions."""
     if len(session_ids) == 1:
@@ -607,6 +776,19 @@ def main():
         setting = story_data.get('setting', 'Unknown Land')
         difficulty = story_data.get('difficulty', 'medium')
         
+        # Get character choices for context
+        character_choices = message_history.get_character_choices()
+        equipment_context = ""
+        if character_choices:
+            equipment_context = f"""
+CHARACTER EQUIPMENT:
+- Weapon: {character_choices.get('weapon', 'None chosen')}
+- Skill: {character_choices.get('skill', 'None chosen')}
+- Tool: {character_choices.get('tool', 'None chosen')}
+
+Use these equipment choices naturally in the story. The character has these items/abilities available.
+"""
+        
         template = f"""You are our guide on this adventure. You are the narrator and game master for this interactive story experience.
 
 STORY CONTEXT:
@@ -614,14 +796,14 @@ STORY CONTEXT:
 - Setting: {setting}
 - Difficulty: {difficulty}
 - Character: {{character_name}}
-
+{equipment_context}
 STORY PROMPT:
 {story_prompt}
 
 CURRENT TURN: {turn_count + 1}
 
 GAME RULES:
-1. Start by asking the player to choose equipment, skills, or tools that will be relevant to this story type
+1. The player has already chosen their equipment and is ready to begin the adventure
 2. Create multiple paths that can lead to success
 3. CRITICAL: DO NOT allow the player to die until after turn 10. Before turn 10, if the player makes dangerous choices, have them face consequences but survive (injured, lost, setbacks, etc.)
 4. After turn 10, some paths may lead to failure or death depending on the story type. If the user fails/dies, generate a response that explains the outcome and ends with the text: "The End."
@@ -686,9 +868,26 @@ AI:"""
         
         # Determine starting choice based on whether continuing or starting new
         if should_clear_history or not message_history.messages:
-            choice = "start"
+            # Handle character creation for new games
+            if not message_history.is_character_creation_complete():
+                print("\nStarting character creation...")
+                
+                # Get story details for character creation context
+                story_data = story_manager.get_story_by_id(selected_story_id) if selected_story_id else story_manager.get_default_story()
+                genre = story_data.get('genre', 'fantasy')
+                setting = story_data.get('setting', 'Fantasy World')
+                
+                # Handle character creation steps
+                while not message_history.is_character_creation_complete():
+                    handle_character_creation(message_history, llm, character_name, genre, setting)
+                
+                # Display final character summary
+                character_summary = display_character_summary(message_history, character_name)
+                choice = f"start with character setup: {character_summary}"
+            else:
+                choice = "start"
         else:
-            choice = "continue"  # Continue from where they left off1
+            choice = "continue"  # Continue from where they left off
 
         while True:
             try:
