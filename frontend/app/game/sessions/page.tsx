@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,38 +43,6 @@ export default function SessionsPage() {
       });
     } catch {
       return 'Unknown date';
-    }
-  };
-
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty.toLowerCase()) {
-      case 'easy':
-        return 'bg-green-500/20 text-green-400';
-      case 'medium':
-        return 'bg-yellow-500/20 text-yellow-400';
-      case 'hard':
-        return 'bg-red-500/20 text-red-400';
-      default:
-        return 'bg-gray-500/20 text-gray-400';
-    }
-  };
-
-  const getStoryEmoji = (genre: string) => {
-    switch (genre.toLowerCase()) {
-      case 'fantasy':
-        return '🧙‍♂️';
-      case 'sci-fi':
-        return '🚀';
-      case 'mystery':
-        return '🕵️';
-      case 'horror':
-        return '🧛';
-      case 'romance':
-        return '💕';
-      case 'adventure':
-        return '⚔️';
-      default:
-        return '📖';
     }
   };
 
@@ -137,7 +105,7 @@ export default function SessionsPage() {
             <BookOpen className="w-24 h-24 text-gray-500 mx-auto mb-6" />
             <h2 className="text-2xl font-bold text-white mb-4">No Adventures Yet</h2>
             <p className="text-gray-400 mb-8 max-w-md mx-auto">
-              You haven't started any adventures yet. Create your first character and begin an epic journey!
+              You haven&apos;t started any adventures yet. Create your first character and begin an epic journey!
             </p>
             <Button
               onClick={() => router.push('/game/story-selection')}

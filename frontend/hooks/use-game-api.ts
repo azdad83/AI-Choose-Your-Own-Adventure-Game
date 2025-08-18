@@ -102,6 +102,8 @@ export function useGameSession(sessionId?: string) {
     try {
       setInitializing(true);
       setError(undefined);
+      
+      // Clear any existing session first to force fresh load
       const client = isDevelopmentMode ? devGameApi : gameApi;
       const session = await client.getSession(id);
       const messages = await client.getMessages(id);
@@ -153,7 +155,7 @@ export function useGameSession(sessionId?: string) {
 
   // Load session on component mount if sessionId is provided
   useEffect(() => {
-    if (sessionId && !state.session) {
+    if (sessionId && sessionId !== state.session?.sessionId) {
       loadSession(sessionId).catch(console.error);
     }
   }, [sessionId]);

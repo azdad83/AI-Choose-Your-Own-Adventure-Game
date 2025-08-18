@@ -236,6 +236,74 @@ async def create_session(request: CreateSessionRequest):
         # Store in memory
         active_sessions[session_id] = session_data
         
+        # Generate initial story message using AI
+        try:
+            # Create character summary for AI context
+            character_equipment = []
+            if request.weapon:
+                character_equipment.append(f"Weapon: {request.weapon}")
+            if request.skill:
+                character_equipment.append(f"Skill: {request.skill}")
+            if request.tool:
+                character_equipment.append(f"Tool: {request.tool}")
+            
+            character_summary = f"Character {request.characterName} has chosen:\n" + "\n".join([f"- {item}" for item in character_equipment])
+            
+            # Create initial prompt for AI
+            story_prompt = story_data.get('initial_prompt', 'You are the guide of an epic adventure.')
+            genre = story_data.get('genre', 'adventure')
+            setting = story_data.get('setting', 'Unknown Land')
+            
+            initial_ai_prompt = f"""You are the narrator and game master for this interactive story experience.
+
+STORY CONTEXT:
+- Genre: {genre}
+- Setting: {setting}
+- Story: {story_data.get('name', 'Adventure')}
+
+CHARACTER SETUP:
+{character_summary}
+
+STORY PROMPT:
+{story_prompt}
+
+This is the very beginning of the adventure. Create an engaging opening that:
+1. Sets the scene in the {setting}
+2. Introduces the character {request.characterName} naturally
+3. Mentions their equipment/abilities in context
+4. Provides an exciting opening scenario
+5. Ends with exactly 3 numbered choices for the player
+
+Keep it engaging but concise (2-3 paragraphs). This is turn 1 of the adventure.
+
+IMPORTANT FORMAT REQUIREMENT:
+ALWAYS end your response with exactly 3 numbered choices:
+1. [First action]
+2. [Second action] 
+3. [Third action]
+
+Begin the adventure:"""
+
+            # Generate AI response for the opening
+            ai_response = llm.invoke(initial_ai_prompt)
+            
+            # Store the initial AI message
+            session_data["chat_history"].add_message(AIMessage(content=ai_response))
+            
+        except Exception as e:
+            print(f"Failed to generate initial story: {e}")
+            # Fallback to basic message if AI generation fails
+            fallback_message = f"Welcome to {story_data.get('name', 'Adventure')}!\n\n{story_data.get('description', '')}\n\nYou are {request.characterName}"
+            if request.weapon:
+                fallback_message += f", armed with {request.weapon}"
+            if request.skill:
+                fallback_message += f" and skilled in {request.skill}"
+            if request.tool:
+                fallback_message += f", carrying {request.tool}"
+            fallback_message += ".\n\nYour adventure begins now. What do you choose to do?\n\n1. Look around and assess the situation\n2. Call out to see if anyone is nearby\n3. Start moving forward cautiously"
+            
+            session_data["chat_history"].add_message(AIMessage(content=fallback_message))
+        
         # Convert to response format
         story = Story(
             id=story_data.get("id", ""),
@@ -362,7 +430,7 @@ async def get_messages(session_id: str):
         messages = []
         for msg in chat_history.messages:
             if hasattr(msg, 'content'):
-                message_type = 'ai' if hasattr(msg, 'response_metadata') else 'user'
+                message_type = 'ai' if isinstance(msg, AIMessage) else 'user'
                 message = GameMessage(
                     id=str(uuid.uuid4()),
                     type=message_type,
@@ -372,13 +440,26 @@ async def get_messages(session_id: str):
                 )
                 messages.append(message)
         
-        # If no messages, add welcome message
+        # If still no messages, add fallback welcome message (shouldn't happen now)
         if not messages:
             story = session_data["story"]
+            character = session_data["character"]
+            
+            character_intro = f"You are {character['name']}"
+            if character.get('weapon'):
+                character_intro += f", armed with {character['weapon']}"
+            if character.get('skill'):
+                character_intro += f" and skilled in {character['skill']}"
+            if character.get('tool'):
+                character_intro += f", carrying {character['tool']}"
+            character_intro += "."
+            
+            welcome_content = f"Welcome to {story['name']}!\n\n{story['description']}\n\n{character_intro}\n\nYour adventure begins now. What do you choose to do?"
+            
             welcome_message = GameMessage(
                 id=str(uuid.uuid4()),
                 type='ai',
-                content=f"Welcome to {story['name']}! {story['description']} You are {session_data['character']['name']}. Let's begin your adventure!",
+                content=welcome_content,
                 timestamp=datetime.now().isoformat(),
                 choices=[
                     "Look around and assess the situation",

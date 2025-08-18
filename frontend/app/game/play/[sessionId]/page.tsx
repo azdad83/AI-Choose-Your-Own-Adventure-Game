@@ -12,14 +12,12 @@ import {
   Send, 
   User, 
   Bot, 
-  Settings, 
-  RotateCcw,
+  Settings,
   Volume2,
   VolumeX 
 } from "lucide-react";
 import { useGameSession } from "@/hooks/use-game-api";
 import { GameMessage } from "@/types/game";
-import { gameApi, devGameApi, isDevelopmentMode } from "@/lib/api-client";
 
 export default function GamePlayPage() {
   const router = useRouter();
