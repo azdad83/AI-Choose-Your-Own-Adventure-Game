@@ -223,9 +223,9 @@ export default function GamePlayPage() {
         </div>
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Messages */}
-          <ScrollArea className="flex-1 pr-4 mb-4">
+          <ScrollArea className="flex-1 pr-4 mb-4 max-h-[calc(100vh-240px)]">
             <div className="space-y-4">
               {messages.map((message: GameMessage) => (
                 <div

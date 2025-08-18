@@ -2,6 +2,9 @@
 export interface CreateSessionRequest {
   storyId: string;
   characterName: string;
+  weapon?: string;
+  skill?: string;
+  tool?: string;
 }
 
 export interface CreateSessionResponse {

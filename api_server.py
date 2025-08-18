@@ -83,6 +83,9 @@ class SessionSummary(BaseModel):
 class CreateSessionRequest(BaseModel):
     storyId: str
     characterName: str
+    weapon: Optional[str] = None
+    skill: Optional[str] = None
+    tool: Optional[str] = None
 
 class SendMessageRequest(BaseModel):
     sessionId: str
@@ -212,7 +215,12 @@ async def create_session(request: CreateSessionRequest):
         # Create session data
         session_data = {
             "sessionId": session_id,
-            "character": {"name": request.characterName},
+            "character": {
+                "name": request.characterName,
+                "weapon": request.weapon,
+                "skill": request.skill,
+                "tool": request.tool
+            },
             "story": story_data,
             "currentTurn": 1,
             "isActive": True,
@@ -244,7 +252,12 @@ async def create_session(request: CreateSessionRequest):
         
         session = GameSession(
             sessionId=session_id,
-            character=Character(name=request.characterName),
+            character=Character(
+                name=request.characterName,
+                weapon=request.weapon,
+                skill=request.skill,
+                tool=request.tool
+            ),
             story=story,
             currentTurn=1,
             isActive=True,

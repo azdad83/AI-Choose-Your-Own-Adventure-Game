@@ -181,7 +181,13 @@ export default function CharacterCreationPage() {
     try {
       setCreating(true);
       const client = isDevelopmentMode ? devGameApi : gameApi;
-      const session = await client.createSession(story.id, character.name);
+      const session = await client.createSession(
+        story.id, 
+        character.name,
+        character.weapon,
+        character.skill,
+        character.tool
+      );
       // Navigate to the main game interface
       router.push(`/game/play/${session.sessionId}`);
     } catch (error) {
