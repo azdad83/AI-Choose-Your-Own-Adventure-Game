@@ -126,13 +126,28 @@ export default function GamePlayPage() {
   const [isSending, setIsSending] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const latestAiMessageRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToLatestMessage = () => {
+    // If there are messages, try to scroll to the latest AI message
+    if (messages.length > 0) {
+      const latestMessage = messages[messages.length - 1];
+      if (latestMessage.type === 'ai' && latestAiMessageRef.current) {
+        // Scroll to the top of the latest AI message
+        latestAiMessageRef.current.scrollIntoView({ 
+          behavior: "smooth",
+          block: "start",
+          inline: "nearest"
+        });
+      } else {
+        // Fall back to scrolling to bottom for user messages
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    scrollToLatestMessage();
   }, [messages]);
 
   const handleSendMessage = async () => {
@@ -322,11 +337,14 @@ export default function GamePlayPage() {
           {/* Messages */}
           <ScrollArea className="flex-1 pr-4 mb-4 max-h-[calc(100vh-240px)]">
             <div className="space-y-4">
-              {messages.map((message: GameMessage) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
+              {messages.map((message: GameMessage, index: number) => {
+                const isLatestAiMessage = message.type === 'ai' && index === messages.length - 1;
+                return (
+                  <div
+                    key={message.id}
+                    ref={isLatestAiMessage ? latestAiMessageRef : null}
+                    className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
                   <div className={`${message.type === 'user' ? 'max-w-[80%]' : 'w-full'} ${
                     message.type === 'user' 
                       ? 'bg-purple-600 text-white' 
@@ -416,7 +434,8 @@ export default function GamePlayPage() {
                     )}
                   </div>
                 </div>
-              ))}
+              );
+            })}
               
               {isSending && (
                 <div className="flex justify-start">
