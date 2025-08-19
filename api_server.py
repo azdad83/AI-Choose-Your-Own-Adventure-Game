@@ -417,6 +417,25 @@ async def delete_session(session_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete session: {str(e)}")
 
+def parse_choices_from_response(content: str) -> tuple[str, List[str]]:
+    """Parse numbered choices from AI response and return content without choices and extracted choices."""
+    import re
+    
+    # Find numbered choices pattern (1. 2. 3. etc.)
+    choice_pattern = r'\n\d+\.\s*([^\n]+)'
+    matches = re.findall(choice_pattern, content)
+    
+    if matches:
+        # Extract choices
+        choices = [match.strip() for match in matches]
+        
+        # Remove choices from content
+        content_without_choices = re.sub(r'\n\d+\.\s*[^\n]+', '', content).strip()
+        
+        return content_without_choices, choices
+    
+    return content, []
+
 @app.get("/api/sessions/{session_id}/messages", response_model=Dict[str, List[GameMessage]])
 async def get_messages(session_id: str):
     """Get messages for a session."""
@@ -431,13 +450,26 @@ async def get_messages(session_id: str):
         for msg in chat_history.messages:
             if hasattr(msg, 'content'):
                 message_type = 'ai' if isinstance(msg, AIMessage) else 'user'
-                message = GameMessage(
-                    id=str(uuid.uuid4()),
-                    type=message_type,
-                    content=msg.content,
-                    timestamp=datetime.now().isoformat(),
-                    turnNumber=session_data["currentTurn"]
-                )
+                
+                if message_type == 'ai':
+                    # Parse choices from AI messages
+                    content_without_choices, choices = parse_choices_from_response(msg.content)
+                    message = GameMessage(
+                        id=str(uuid.uuid4()),
+                        type=message_type,
+                        content=content_without_choices,
+                        timestamp=datetime.now().isoformat(),
+                        choices=choices if choices else None,
+                        turnNumber=session_data["currentTurn"]
+                    )
+                else:
+                    message = GameMessage(
+                        id=str(uuid.uuid4()),
+                        type=message_type,
+                        content=msg.content,
+                        timestamp=datetime.now().isoformat(),
+                        turnNumber=session_data["currentTurn"]
+                    )
                 messages.append(message)
         
         # If still no messages, add fallback welcome message (shouldn't happen now)
@@ -517,23 +549,14 @@ Keep responses to 2-3 paragraphs maximum.
         session_data["currentTurn"] += 1
         session_data["lastUpdated"] = datetime.now().isoformat()
         
-        # Parse response for choices (simple implementation)
-        choices = []
-        if "1." in response and "2." in response:
-            # Extract numbered choices from response
-            lines = response.split('\n')
-            for line in lines:
-                line = line.strip()
-                if line.startswith(('1.', '2.', '3.', '4.')):
-                    choice = line[2:].strip()
-                    if choice:
-                        choices.append(choice)
+        # Parse response for choices and content
+        content, choices = parse_choices_from_response(response)
         
         # Create AI message
         ai_message = GameMessage(
             id=str(uuid.uuid4()),
             type='ai',
-            content=response,
+            content=content,
             timestamp=datetime.now().isoformat(),
             choices=choices if choices else None,
             turnNumber=session_data["currentTurn"]

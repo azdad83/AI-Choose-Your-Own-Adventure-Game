@@ -19,6 +19,103 @@ import {
 import { useGameSession } from "@/hooks/use-game-api";
 import { GameMessage } from "@/types/game";
 
+// Utility function to parse simple markdown
+const parseMarkdown = (text: string) => {
+  // Split by paragraphs
+  const paragraphs = text.split('\n\n');
+  
+  return paragraphs.map((paragraph, pIndex) => {
+    const lines = paragraph.split('\n');
+    
+    return (
+      <div key={pIndex} className={pIndex > 0 ? 'mt-4' : ''}>
+        {lines.map((line, lIndex) => {
+          // Check if this is likely a question - more flexible detection
+          const trimmedLine = line.trim();
+          const isQuestion = trimmedLine.endsWith('?') && (
+            trimmedLine.toLowerCase().includes('what do you') ||
+            trimmedLine.toLowerCase().includes('what will you') ||
+            trimmedLine.toLowerCase().includes('how do you') ||
+            trimmedLine.toLowerCase().includes('where do you') ||
+            trimmedLine.toLowerCase().includes('do you do') ||
+            trimmedLine.toLowerCase().includes('do next') ||
+            trimmedLine.toLowerCase().includes('your next move') ||
+            trimmedLine.toLowerCase().includes('your decision') ||
+            (trimmedLine.toLowerCase().startsWith('what') && trimmedLine.includes('you'))
+          );
+          
+          // Parse both single and double asterisk formatting
+          let parts = line.split(/(\*\*.*?\*\*|\*.*?\*)/g);
+          const renderedLine = parts.map((part, index) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+              // Double asterisk - header/strong emphasis
+              const boldText = part.slice(2, -2);
+              return <strong key={index} className="font-bold text-gray-100">{boldText}</strong>;
+            } else if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
+              // Single asterisk - italic/emphasis (but we'll make it bold for game text)
+              const italicText = part.slice(1, -1);
+              return <strong key={index} className="font-semibold text-purple-200">{italicText}</strong>;
+            }
+            return part;
+          });
+          
+          return (
+            <div 
+              key={lIndex} 
+              className={`${isQuestion ? 'font-bold text-purple-100 mt-6 text-2xl border-l-4 border-purple-400 pl-4 py-3 bg-purple-900/20 rounded-r-lg' : ''} ${lIndex > 0 ? 'mt-1' : ''}`}
+            >
+              {renderedLine}
+            </div>
+          );
+        })}
+      </div>
+    );
+  });
+};
+
+// Utility function to parse choice text into header and content
+const parseChoice = (choice: string) => {
+  // Remove leading/trailing whitespace
+  const trimmed = choice.trim();
+  
+  // Look for bold text at the beginning (either at start or after **)
+  const boldMatch = trimmed.match(/^\*\*(.*?)\*\*\s*(.*)$/);
+  if (boldMatch) {
+    return {
+      header: boldMatch[1].trim(),
+      content: boldMatch[2].trim()
+    };
+  }
+  
+  // Look for bold text anywhere in the string
+  const anyBoldMatch = trimmed.match(/^(.*?)\*\*(.*?)\*\*(.*)$/);
+  if (anyBoldMatch) {
+    const beforeBold = anyBoldMatch[1].trim();
+    const boldText = anyBoldMatch[2].trim();
+    const afterBold = anyBoldMatch[3].trim();
+    
+    return {
+      header: boldText,
+      content: [beforeBold, afterBold].filter(text => text.length > 0).join(' ')
+    };
+  }
+  
+  // Try to split on first period or sentence
+  const sentences = trimmed.split(/\.\s+/);
+  if (sentences.length > 1) {
+    return {
+      header: sentences[0] + '.',
+      content: sentences.slice(1).join('. ')
+    };
+  }
+  
+  // Fallback: treat entire text as header
+  return {
+    header: trimmed,
+    content: ''
+  };
+};
+
 export default function GamePlayPage() {
   const router = useRouter();
   const params = useParams();
@@ -230,7 +327,7 @@ export default function GamePlayPage() {
                   key={message.id}
                   className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className={`max-w-[80%] ${
+                  <div className={`${message.type === 'user' ? 'max-w-[80%]' : 'w-full'} ${
                     message.type === 'user' 
                       ? 'bg-purple-600 text-white' 
                       : message.type === 'ai'
@@ -250,27 +347,71 @@ export default function GamePlayPage() {
                         {formatTimestamp(message.timestamp)}
                       </span>
                     </div>
-                    <div className="whitespace-pre-wrap leading-relaxed">
-                      {message.content}
+                    <div className="leading-relaxed">
+                      {message.type === 'ai' ? parseMarkdown(message.content) : (
+                        <div className="whitespace-pre-wrap">{message.content}</div>
+                      )}
                     </div>
                     
-                    {/* Choice buttons for AI messages */}
+                    {/* Choice cards for AI messages */}
                     {message.type === 'ai' && message.choices && message.choices.length > 0 && (
-                      <div className="mt-4 space-y-2">
-                        {message.choices.map((choice, index) => (
-                          <Button
-                            key={index}
-                            onClick={() => {
-                              setNewMessage(choice);
-                              handleSendMessage();
-                            }}
-                            variant="outline"
-                            size="sm"
-                            className="w-full text-left justify-start bg-slate-800 border-slate-600 text-gray-200 hover:bg-slate-700"
-                          >
-                            {choice}
-                          </Button>
-                        ))}
+                      <div className="mt-4 grid gap-3" style={{ gridTemplateColumns: `repeat(${message.choices.length}, 1fr)` }}>
+                        {message.choices.map((choice, index) => {
+                          const parsedChoice = parseChoice(choice);
+                          return (
+                            <div
+                              key={index}
+                              role="button"
+                              tabIndex={0}
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                
+                                if (isSending || !session) {
+                                  console.log('Choice blocked:', { isSending, session: !!session });
+                                  return;
+                                }
+                                
+                                console.log('Choice clicked:', choice);
+                                console.log('Current loading state:', loading);
+                                console.log('Current isSending state:', isSending);
+                                
+                                // Send only the clean header text without markdown or punctuation
+                                const cleanAction = parsedChoice.header.replace(/\*\*/g, '').replace(/\*/g, '').replace(/:$/, '').trim();
+                                
+                                try {
+                                  setIsSending(true);
+                                  console.log('About to send message:', cleanAction);
+                                  await sendMessage(cleanAction);
+                                  console.log('Message sent successfully');
+                                } catch (error) {
+                                  console.error('Failed to send choice:', error);
+                                } finally {
+                                  setIsSending(false);
+                                  console.log('isSending set to false');
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  e.currentTarget.click();
+                                }
+                              }}
+                              className={`cursor-pointer transition-all duration-200 bg-slate-800 border border-slate-600 rounded-lg p-4 hover:bg-slate-700 hover:border-slate-500 ${
+                                isSending ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
+                            >
+                              <div className="text-gray-100 font-medium text-sm mb-2">
+                                {parsedChoice.header}
+                              </div>
+                              {parsedChoice.content && (
+                                <div className="text-gray-300 text-xs leading-relaxed">
+                                  {parsedChoice.content}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

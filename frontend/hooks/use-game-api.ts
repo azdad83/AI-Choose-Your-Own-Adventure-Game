@@ -125,18 +125,20 @@ export function useGameSession(sessionId?: string) {
     }
 
     try {
-      setLoading(true);
       setError(undefined);
-      const client = isDevelopmentMode ? devGameApi : gameApi;
-      const response = await client.sendMessage(state.session.sessionId, message);
       
-      // Add user message
+      // Add user message immediately
       const userMessage = {
         id: `user-${Date.now()}`,
         type: 'user' as const,
         content: message,
         timestamp: new Date().toISOString(),
       };
+      
+      setMessages([...state.messages, userMessage]);
+      
+      const client = isDevelopmentMode ? devGameApi : gameApi;
+      const response = await client.sendMessage(state.session.sessionId, message);
       
       // Add AI response
       const aiMessage = response.message;
@@ -148,8 +150,6 @@ export function useGameSession(sessionId?: string) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
       setError(errorMessage);
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
