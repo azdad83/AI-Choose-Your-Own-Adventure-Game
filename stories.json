@@ -14,6 +14,42 @@
             "quest",
             "fantasy creatures"
         ],
+        "skills": [
+            {
+                "name": "Nature Magic",
+                "description": "Harness the power of plants, animals, and natural elements to overcome obstacles and heal wounds."
+            },
+            {
+                "name": "Ancient Lore",
+                "description": "Knowledge of old legends, magical creatures, and forgotten rituals that unlock hidden paths."
+            },
+            {
+                "name": "Beast Communication",
+                "description": "The ability to speak with forest animals and gain their aid in your quest."
+            },
+            {
+                "name": "Herbalism",
+                "description": "Craft potions and remedies from forest plants to restore health and gain magical effects."
+            }
+        ],
+        "weapons": [
+            {
+                "name": "Moonlit Bow",
+                "description": "An enchanted bow that glows with silver light and never misses its intended target."
+            },
+            {
+                "name": "Crystal Staff",
+                "description": "A staff topped with a glowing crystal that amplifies magical abilities and can channel elemental forces."
+            },
+            {
+                "name": "Thorn Blade",
+                "description": "A sword grown from living wood, sharp as steel and capable of entangling enemies with magical vines."
+            },
+            {
+                "name": "Shield of Seasons",
+                "description": "A protective shield that changes its properties with the seasons, offering different magical resistances."
+            }
+        ],
         "author": "AI Game System",
         "created_date": "2025-08-16"
     },
@@ -31,6 +67,42 @@
             "crime",
             "investigation",
             "urban"
+        ],
+        "skills": [
+            {
+                "name": "Street Smarts",
+                "description": "Navigate the urban underworld, read people's intentions, and know who to trust in the city's shadows."
+            },
+            {
+                "name": "Investigation",
+                "description": "Analyze crime scenes, follow leads, and piece together clues to solve complex mysteries."
+            },
+            {
+                "name": "Intimidation",
+                "description": "Use your reputation and presence to extract information from reluctant witnesses and criminals."
+            },
+            {
+                "name": "Fast Talk",
+                "description": "Charm, bluff, and persuade your way through difficult situations with quick wit and silver tongue."
+            }
+        ],
+        "weapons": [
+            {
+                "name": "Colt .38 Special Revolver",
+                "description": "A reliable six-shooter that's gotten you out of more tight spots than you can count."
+            },
+            {
+                "name": "Brass Knuckles",
+                "description": "When guns are too loud and fists aren't enough, these add the persuasion you need."
+            },
+            {
+                "name": "Winchester Model 12 shotgun",
+                "description": "A reliable pump-action shotgun used by police for close-quarters situations"
+            },
+            {
+                "name": "Cigarette Case Camera",
+                "description": "A hidden camera disguised as a cigarette case for gathering evidence without being noticed."
+            }
         ],
         "author": "AI Game System",
         "created_date": "2025-08-16"
@@ -50,6 +122,42 @@
             "leadership",
             "moral choices"
         ],
+        "skills": [
+            {
+                "name": "Starship Command",
+                "description": "Lead your crew effectively and make tactical decisions in space combat and exploration scenarios."
+            },
+            {
+                "name": "Xenobiology",
+                "description": "Understand alien life forms, their biology, and how to interact safely with unknown species."
+            },
+            {
+                "name": "Diplomatic Protocol",
+                "description": "Navigate complex political situations and first contact scenarios with alien civilizations."
+            },
+            {
+                "name": "Zero-G Combat",
+                "description": "Fight effectively in zero gravity environments, space stations, and during boarding actions."
+            }
+        ],
+        "weapons": [
+            {
+                "name": "Plasma Rifle",
+                "description": "An advanced energy weapon that fires superheated plasma bolts capable of melting through ship hulls."
+            },
+            {
+                "name": "Gravity Hammer",
+                "description": "A melee weapon that manipulates gravitational fields to deliver devastating crushing blows."
+            },
+            {
+                "name": "Neural Disruptor",
+                "description": "A non-lethal weapon that scrambles nervous systems, effective against most known alien species."
+            },
+            {
+                "name": "Quantum Blade",
+                "description": "A melee weapon with an edge sharpened at the molecular level, capable of cutting through most materials including light armor."
+            }
+        ],
         "author": "AI Game System",
         "created_date": "2025-08-16"
     },
@@ -67,6 +175,42 @@
             "strategy",
             "nobility",
             "medieval life"
+        ],
+        "skills": [
+            {
+                "name": "Political Acumen",
+                "description": "Navigate court politics, understand noble motivations, and build strategic alliances."
+            },
+            {
+                "name": "Military Strategy",
+                "description": "Plan battles, understand troop movements, and advise on matters of war and defense."
+            },
+            {
+                "name": "Scholarly Knowledge",
+                "description": "Access to extensive learning including history, law, and ancient texts for guidance."
+            },
+            {
+                "name": "Courtly Manners",
+                "description": "Master the subtle art of etiquette, flattery, and reading between the lines in noble society."
+            }
+        ],
+        "weapons": [
+            {
+                "name": "Royal Seal Sword",
+                "description": "An ornate longsword bearing the king's seal, marking you as an agent of royal authority."
+            },
+            {
+                "name": "Crossbow of Truth",
+                "description": "A precision crossbow said to never miss when used in the service of justice."
+            },
+            {
+                "name": "Ceremonial Mace",
+                "description": "A symbol of office that doubles as a formidable weapon in times of need."
+            },
+            {
+                "name": "Hidden Dagger",
+                "description": "A concealed blade for when diplomacy fails and survival becomes paramount."
+            }
         ],
         "author": "AI Game System",
         "created_date": "2025-08-16"
@@ -86,6 +230,42 @@
             "mystery",
             "survival"
         ],
+        "skills": [
+            {
+                "name": "Occult Knowledge",
+                "description": "Understanding of supernatural phenomena, protective rituals, and how to banish malevolent spirits."
+            },
+            {
+                "name": "Psychological Resilience",
+                "description": "Maintain sanity and composure when faced with terror and disturbing revelations."
+            },
+            {
+                "name": "Paranormal Investigation",
+                "description": "Use modern equipment and techniques to detect and document supernatural activity."
+            },
+            {
+                "name": "Survival Instincts",
+                "description": "Sense danger, find escape routes, and make quick decisions when life is threatened."
+            }
+        ],
+        "weapons": [
+            {
+                "name": "Blessed Silver Cross",
+                "description": "A holy relic that repels evil spirits and provides protection against supernatural attacks."
+            },
+            {
+                "name": "Iron Crowbar",
+                "description": "Cold iron that spirits cannot touch, useful for both breaking barriers and self-defense."
+            },
+            {
+                "name": "Salt Shotgun",
+                "description": "A modified shotgun loaded with consecrated salt rounds, effective against ghostly apparitions."
+            },
+            {
+                "name": "Ancestral Grimoire",
+                "description": "An ancient book of protective spells and banishment rituals inherited with the mansion."
+            }
+        ],
         "author": "AI Game System",
         "created_date": "2025-08-16"
     },
@@ -103,6 +283,42 @@
             "treasure hunting",
             "naval combat",
             "loyalty"
+        ],
+        "skills": [
+            {
+                "name": "Seamanship",
+                "description": "Master navigator and sailor, able to read weather, currents, and guide ships through treacherous waters."
+            },
+            {
+                "name": "Swordsmanship",
+                "description": "Expert duelist skilled in cutlass combat and boarding actions against enemy vessels."
+            },
+            {
+                "name": "Leadership",
+                "description": "Command respect from your crew, maintain loyalty, and inspire them in battle and hardship."
+            },
+            {
+                "name": "Treasure Hunting",
+                "description": "Decipher maps, solve riddles, and navigate deadly traps to uncover hidden riches."
+            }
+        ],
+        "weapons": [
+            {
+                "name": "Captain's Cutlass",
+                "description": "A razor-sharp curved sword perfectly balanced for ship-to-ship combat and dueling."
+            },
+            {
+                "name": "Flintlock Pistol",
+                "description": "A reliable single-shot firearm that's saved your life more times than you can remember."
+            },
+            {
+                "name": "Naval Cannon",
+                "description": "Ship-mounted artillery that can blast holes in enemy hulls or clear beaches for landing."
+            },
+            {
+                "name": "Boarding Axe",
+                "description": "A versatile weapon for cutting rigging, breaking down doors, and close-quarters fighting."
+            }
         ],
         "author": "AI Game System",
         "created_date": "2025-08-16"

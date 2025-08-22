@@ -562,8 +562,8 @@ Make each tool distinct and useful, fitting the {genre} genre in a {setting} set
     
     return templates[step]
 
-def handle_character_creation(message_history: 'QdrantChatMessageHistory', llm: OllamaLLM, character_name: str, genre: str, setting: str) -> bool:
-    """Handle the character creation process. Returns True when complete."""
+def handle_character_creation(message_history: 'QdrantChatMessageHistory', llm: OllamaLLM, character_name: str, story_data: dict) -> bool:
+    """Handle the character creation process using predefined story skills and weapons. Returns True when complete."""
     current_state = message_history.get_character_creation_state()
     
     if current_state == "complete":
@@ -579,29 +579,55 @@ def handle_character_creation(message_history: 'QdrantChatMessageHistory', llm: 
     print(f"{step_names[current_state]}")
     print("═" * 60)
     
-    # Generate AI choices for this step
-    prompt = display_character_creation_step(current_state, character_name, genre, setting)
-    response = llm.invoke(prompt)
-    print(response.strip())
+    # Use predefined options from story data for weapons and skills
+    if current_state == "weapon":
+        options = story_data.get('weapons', [])
+        print("Choose your weapon:")
+        for i, weapon in enumerate(options, 1):
+            print(f"{i}. {weapon['name']}: {weapon['description']}")
+    elif current_state == "skill":
+        options = story_data.get('skills', [])
+        print("Choose your skill:")
+        for i, skill in enumerate(options, 1):
+            print(f"{i}. {skill['name']}: {skill['description']}")
+    else:  # tool - still use AI generation since tools aren't story-specific
+        prompt = display_character_creation_step(current_state, character_name, story_data.get('genre', ''), story_data.get('setting', ''))
+        response = llm.invoke(prompt)
+        print(response.strip())
+        options = None  # Will parse from AI response
+    
     print("═" * 60)
     
     # Get user choice
     while True:
-        choice = input(f"\n🎯 Choose your {current_state} (1, 2, or 3): ").strip()
-        if choice in ['1', '2', '3']:
-            # Extract the chosen option from AI response
-            lines = response.strip().split('\n')
-            choice_lines = [line for line in lines if line.strip().startswith(f"{choice}.")]
-            if choice_lines:
-                chosen_option = choice_lines[0].strip()
+        if current_state in ["weapon", "skill"] and options:
+            max_choice = len(options)
+            choice = input(f"\n🎯 Choose your {current_state} (1-{max_choice}): ").strip()
+            if choice.isdigit() and 1 <= int(choice) <= max_choice:
+                chosen_option = options[int(choice) - 1]
+                chosen_text = f"{chosen_option['name']}: {chosen_option['description']}"
                 # Store the choice
-                message_history.store_character_choice(current_state, chosen_option)
-                print(f"\n✓ Selected: {chosen_option}")
+                message_history.store_character_choice(current_state, chosen_text)
+                print(f"\n✓ Selected: {chosen_text}")
                 return False  # Not complete yet, need to check next step
             else:
-                print("Error parsing choice. Please try again.")
-        else:
-            print("Please enter 1, 2, or 3.")
+                print(f"Please enter a number between 1 and {max_choice}.")
+        else:  # tool case with AI generation
+            choice = input(f"\n🎯 Choose your {current_state} (1, 2, or 3): ").strip()
+            if choice in ['1', '2', '3']:
+                # Extract the chosen option from AI response
+                lines = response.strip().split('\n')
+                choice_lines = [line for line in lines if line.strip().startswith(f"{choice}.")]
+                if choice_lines:
+                    chosen_option = choice_lines[0].strip()
+                    # Store the choice
+                    message_history.store_character_choice(current_state, chosen_option)
+                    print(f"\n✓ Selected: {chosen_option}")
+                    return False  # Not complete yet, need to check next step
+                else:
+                    print("Error parsing choice. Please try again.")
+            else:
+                print("Please enter 1, 2, or 3.")
 
 def display_character_summary(message_history: 'QdrantChatMessageHistory', character_name: str) -> str:
     """Display the character's final loadout and return it as a string for the story."""
@@ -874,12 +900,10 @@ AI:"""
                 
                 # Get story details for character creation context
                 story_data = story_manager.get_story_by_id(selected_story_id) if selected_story_id else story_manager.get_default_story()
-                genre = story_data.get('genre', 'fantasy')
-                setting = story_data.get('setting', 'Fantasy World')
                 
                 # Handle character creation steps
                 while not message_history.is_character_creation_complete():
-                    handle_character_creation(message_history, llm, character_name, genre, setting)
+                    handle_character_creation(message_history, llm, character_name, story_data)
                 
                 # Display final character summary
                 character_summary = display_character_summary(message_history, character_name)

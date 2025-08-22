@@ -7,9 +7,21 @@ export interface Story {
   estimatedLength: string;
   setting: string;
   themes: string[];
+  skills: Skill[];
+  weapons: Weapon[];
   initialPrompt?: string;
   author?: string;
   createdDate?: string;
+}
+
+export interface Skill {
+  name: string;
+  description: string;
+}
+
+export interface Weapon {
+  name: string;
+  description: string;
 }
 
 export interface Character {

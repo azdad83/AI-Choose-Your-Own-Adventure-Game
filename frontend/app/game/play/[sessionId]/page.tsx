@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,7 +45,7 @@ const parseMarkdown = (text: string) => {
           );
           
           // Parse both single and double asterisk formatting
-          let parts = line.split(/(\*\*.*?\*\*|\*.*?\*)/g);
+          const parts = line.split(/(\*\*.*?\*\*|\*.*?\*)/g);
           const renderedLine = parts.map((part, index) => {
             if (part.startsWith('**') && part.endsWith('**')) {
               // Double asterisk - header/strong emphasis
@@ -128,7 +128,7 @@ export default function GamePlayPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const latestAiMessageRef = useRef<HTMLDivElement>(null);
 
-  const scrollToLatestMessage = () => {
+  const scrollToLatestMessage = useCallback(() => {
     // If there are messages, try to scroll to the latest AI message
     if (messages.length > 0) {
       const latestMessage = messages[messages.length - 1];
@@ -144,11 +144,11 @@ export default function GamePlayPage() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       }
     }
-  };
+  }, [messages]);
 
   useEffect(() => {
     scrollToLatestMessage();
-  }, [messages]);
+  }, [messages, scrollToLatestMessage]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || isSending || !session) return;

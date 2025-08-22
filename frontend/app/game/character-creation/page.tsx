@@ -19,60 +19,83 @@ interface CharacterOption {
   icon: React.ReactNode;
 }
 
-const weaponOptions: CharacterOption[] = [
-  {
-    id: "sword",
-    name: "Sword",
-    description: "A trusty blade for close combat",
-    icon: <Sword className="w-6 h-6" />
-  },
-  {
-    id: "bow",
-    name: "Bow",
-    description: "Strike from a distance with precision",
-    icon: <span className="text-xl">🏹</span>
-  },
-  {
-    id: "staff",
-    name: "Staff",
-    description: "Channel magical energies",
-    icon: <span className="text-xl">🔮</span>
-  },
-  {
-    id: "daggers",
-    name: "Daggers",
-    description: "Swift and stealthy attacks",
-    icon: <span className="text-xl">🗡️</span>
+// Helper functions to convert story data to character options
+const getWeaponIcon = (weaponName: string) => {
+  const iconMap: { [key: string]: React.ReactNode } = {
+    'sword': <Sword className="w-6 h-6" />,
+    'bow': <span className="text-xl">🏹</span>,
+    'staff': <span className="text-xl">🔮</span>,
+    'blade': <span className="text-xl">🗡️</span>,
+    'revolver': <span className="text-xl">🔫</span>,
+    'rifle': <span className="text-xl">🔫</span>,
+    'hammer': <span className="text-xl">🔨</span>,
+    'crossbow': <span className="text-xl">🏹</span>,
+    'cutlass': <Sword className="w-6 h-6" />,
+    'pistol': <span className="text-xl">🔫</span>,
+    'cannon': <span className="text-xl">💥</span>,
+    'axe': <span className="text-xl">🪓</span>,
+    'cross': <span className="text-xl">✝️</span>,
+    'crowbar': <span className="text-xl">🔧</span>,
+    'shotgun': <span className="text-xl">🔫</span>,
+    'grimoire': <span className="text-xl">📖</span>,
+    'mace': <span className="text-xl">🔨</span>,
+    'dagger': <span className="text-xl">🗡️</span>,
+    'shield': <span className="text-xl">�️</span>
+  };
+  
+  // Find matching icon based on weapon name keywords
+  for (const [key, icon] of Object.entries(iconMap)) {
+    if (weaponName.toLowerCase().includes(key)) {
+      return icon;
+    }
   }
-];
+  
+  return <Sword className="w-6 h-6" />; // Default icon
+};
 
-const skillOptions: CharacterOption[] = [
-  {
-    id: "stealth",
-    name: "Stealth",
-    description: "Move unseen and strike from shadows",
-    icon: <span className="text-xl">🥷</span>
-  },
-  {
-    id: "persuasion",
-    name: "Persuasion",
-    description: "Win others over with words",
-    icon: <span className="text-xl">💬</span>
-  },
-  {
-    id: "healing",
-    name: "Healing",
-    description: "Restore health and vitality",
-    icon: <span className="text-xl">🩹</span>
-  },
-  {
-    id: "athletics",
-    name: "Athletics",
-    description: "Physical prowess and endurance",
-    icon: <span className="text-xl">💪</span>
+const getSkillIcon = (skillName: string) => {
+  const iconMap: { [key: string]: React.ReactNode } = {
+    'stealth': <span className="text-xl">🥷</span>,
+    'magic': <span className="text-xl">🔮</span>,
+    'nature': <span className="text-xl">🌿</span>,
+    'lore': <span className="text-xl">📚</span>,
+    'communication': <span className="text-xl">🗣️</span>,
+    'talk': <span className="text-xl">💬</span>,
+    'persuasion': <span className="text-xl">💬</span>,
+    'street': <span className="text-xl">🏢</span>,
+    'investigation': <span className="text-xl">🔍</span>,
+    'intimidation': <span className="text-xl">😤</span>,
+    'command': <span className="text-xl">�</span>,
+    'biology': <span className="text-xl">🧬</span>,
+    'diplomatic': <span className="text-xl">🤝</span>,
+    'combat': <span className="text-xl">⚔️</span>,
+    'political': <span className="text-xl">🏛️</span>,
+    'military': <span className="text-xl">⚔️</span>,
+    'scholarly': <span className="text-xl">📚</span>,
+    'courtly': <span className="text-xl">👑</span>,
+    'occult': <span className="text-xl">🔮</span>,
+    'psychological': <span className="text-xl">�</span>,
+    'paranormal': <span className="text-xl">👻</span>,
+    'survival': <span className="text-xl">🏕️</span>,
+    'seamanship': <span className="text-xl">🚢</span>,
+    'swordsmanship': <span className="text-xl">⚔️</span>,
+    'leadership': <span className="text-xl">👑</span>,
+    'treasure': <span className="text-xl">💰</span>,
+    'herbalism': <span className="text-xl">🌿</span>,
+    'beast': <span className="text-xl">�</span>
+  };
+  
+  // Find matching icon based on skill name keywords
+  for (const [key, icon] of Object.entries(iconMap)) {
+    if (skillName.toLowerCase().includes(key)) {
+      return icon;
+    }
   }
-];
+  
+  return <Star className="w-6 h-6" />; // Default icon
+};
 
+// Default tool options remain the same since they're not story-specific
 const toolOptions: CharacterOption[] = [
   {
     id: "lockpicks",
@@ -93,10 +116,10 @@ const toolOptions: CharacterOption[] = [
     icon: <span className="text-xl">🧭</span>
   },
   {
-    id: "spellbook",
-    name: "Spellbook",
-    description: "Contains ancient knowledge",
-    icon: <span className="text-xl">📚</span>
+    id: "torch",
+    name: "Torch",
+    description: "Light up dark places",
+    icon: <span className="text-xl">🔦</span>
   }
 ];
 
@@ -138,6 +161,22 @@ function CharacterCreationContent() {
       setStory(foundStory || null);
     }
   }, [storyId, stories]);
+
+  // Generate weapon options from story data
+  const weaponOptions: CharacterOption[] = story?.weapons.map((weapon) => ({
+    id: weapon.name.toLowerCase().replace(/\s+/g, '_'),
+    name: weapon.name,
+    description: weapon.description,
+    icon: getWeaponIcon(weapon.name)
+  })) || [];
+
+  // Generate skill options from story data
+  const skillOptions: CharacterOption[] = story?.skills.map((skill) => ({
+    id: skill.name.toLowerCase().replace(/\s+/g, '_'),
+    name: skill.name,
+    description: skill.description,
+    icon: getSkillIcon(skill.name)
+  })) || [];
 
   const handleNext = () => {
     switch (step) {

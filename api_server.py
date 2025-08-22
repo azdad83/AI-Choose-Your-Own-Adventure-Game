@@ -37,6 +37,14 @@ app.add_middleware(
 )
 
 # Pydantic models for API requests/responses
+class Skill(BaseModel):
+    name: str
+    description: str
+
+class Weapon(BaseModel):
+    name: str
+    description: str
+
 class Story(BaseModel):
     id: str
     name: str
@@ -46,6 +54,8 @@ class Story(BaseModel):
     estimatedLength: str
     setting: str
     themes: List[str]
+    skills: List[Skill]
+    weapons: List[Weapon]
     author: Optional[str] = None
     createdDate: Optional[str] = None
 
@@ -165,6 +175,8 @@ async def get_stories():
                 estimatedLength=story_data.get("estimated_length", "15-20 turns"),
                 setting=story_data.get("setting", ""),
                 themes=story_data.get("themes", []),
+                skills=[Skill(name=skill["name"], description=skill["description"]) for skill in story_data.get("skills", [])],
+                weapons=[Weapon(name=weapon["name"], description=weapon["description"]) for weapon in story_data.get("weapons", [])],
                 author=story_data.get("author"),
                 createdDate=story_data.get("created_date")
             )
@@ -191,6 +203,8 @@ async def get_story(story_id: str):
             estimatedLength=story_data.get("estimated_length", "15-20 turns"),
             setting=story_data.get("setting", ""),
             themes=story_data.get("themes", []),
+            skills=[Skill(name=skill["name"], description=skill["description"]) for skill in story_data.get("skills", [])],
+            weapons=[Weapon(name=weapon["name"], description=weapon["description"]) for weapon in story_data.get("weapons", [])],
             author=story_data.get("author"),
             createdDate=story_data.get("created_date")
         )
@@ -314,6 +328,8 @@ Begin the adventure:"""
             estimatedLength=story_data.get("estimated_length", "15-20 turns"),
             setting=story_data.get("setting", ""),
             themes=story_data.get("themes", []),
+            skills=[Skill(name=skill["name"], description=skill["description"]) for skill in story_data.get("skills", [])],
+            weapons=[Weapon(name=weapon["name"], description=weapon["description"]) for weapon in story_data.get("weapons", [])],
             author=story_data.get("author"),
             createdDate=story_data.get("created_date")
         )
@@ -378,6 +394,8 @@ async def get_session(session_id: str):
             estimatedLength=story_data.get("estimated_length", "15-20 turns"),
             setting=story_data.get("setting", ""),
             themes=story_data.get("themes", []),
+            skills=[Skill(name=skill["name"], description=skill["description"]) for skill in story_data.get("skills", [])],
+            weapons=[Weapon(name=weapon["name"], description=weapon["description"]) for weapon in story_data.get("weapons", [])],
             author=story_data.get("author"),
             createdDate=story_data.get("created_date")
         )
