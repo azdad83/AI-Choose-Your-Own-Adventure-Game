@@ -15,6 +15,7 @@ export interface Story {
   skills: Skill[];
   weapons: Weapon[];
   tools: Tool[];
+  image?: string;
   initialPrompt?: string;
   author?: string;
   createdDate?: string;

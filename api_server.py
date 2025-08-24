@@ -61,6 +61,7 @@ class Story(BaseModel):
     skills: List[Skill]
     weapons: List[Weapon]
     tools: List[Tool]
+    image: Optional[str] = None
     author: Optional[str] = None
     createdDate: Optional[str] = None
 

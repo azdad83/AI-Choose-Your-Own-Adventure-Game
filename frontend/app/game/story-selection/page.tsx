@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Play, BookOpen, Users, Star } from "lucide-react";
+import { ArrowLeft, Play, BookOpen } from "lucide-react";
 import { useStories } from "@/hooks/use-game-api";
 import { Story } from "@/types/game";
 
@@ -108,56 +108,42 @@ export default function StorySelectionPage() {
               {stories.map((story: Story) => (
                 <Card
                   key={story.id}
-                  className={`cursor-pointer transition-all duration-200 ${
+                  className={`cursor-pointer transition-all duration-200 relative overflow-hidden h-80 ${
                     selectedStory?.id === story.id
-                      ? 'bg-purple-800/50 border-purple-500 ring-2 ring-purple-400'
-                      : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800/70'
+                      ? 'border-purple-500 ring-2 ring-purple-400'
+                      : 'border-slate-700 hover:border-slate-500'
                   }`}
                   onClick={() => handleStorySelect(story)}
+                  style={{
+                    backgroundImage: story.image ? `url(/${story.image})` : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat'
+                  }}
                 >
-                  <CardHeader>
+                  {/* Dark overlay for text readability */}
+                  <div className="absolute inset-0 bg-black/60" />
+                  
+                  {/* Content */}
+                  <div className="relative z-10 p-6 h-full flex flex-col justify-between">
+                    {/* Top section with emoji and difficulty */}
                     <div className="flex items-center justify-between">
                       <div className="text-3xl">{getStoryEmoji(story.genre)}</div>
                       <Badge className={getDifficultyColor(story.difficulty)}>
                         {story.difficulty}
                       </Badge>
                     </div>
-                    <CardTitle className="text-white text-lg">
-                      {story.name}
-                    </CardTitle>
-                    <CardDescription className="text-gray-400">
-                      {story.setting}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-300 text-sm mb-4 line-clamp-3">
-                      {story.description}
-                    </p>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      <Badge variant="secondary" className="text-xs">
-                        {story.genre}
-                      </Badge>
-                      {story.themes?.map((theme: string, index: number) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {theme}
-                        </Badge>
-                      ))}
+                    
+                    {/* Bottom section with title and setting */}
+                    <div className="text-left">
+                      <h3 className="text-white text-xl font-bold mb-2">
+                        {story.name}
+                      </h3>
+                      <p className="text-gray-300 text-sm">
+                        {story.setting}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <BookOpen className="w-4 h-4" />
-                        <span>{story.genre}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Users className="w-4 h-4" />
-                        <span>{story.difficulty}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4" />
-                        <span>4.8</span>
-                      </div>
-                    </div>
-                  </CardContent>
+                  </div>
                 </Card>
               ))}
             </div>

@@ -14,6 +14,7 @@
             "quest",
             "fantasy creatures"
         ],
+    "image": "scenes/noir_scene.png",
         "skills": [
             {
                 "name": "Nature Magic",
@@ -86,6 +87,7 @@
             "investigation",
             "urban"
         ],
+    "image": "scenes/noir_scene.png",
         "skills": [
             {
                 "name": "Street Smarts",
@@ -158,6 +160,7 @@
             "leadership",
             "moral choices"
         ],
+    "image": "scenes/noir_scene.png",
         "skills": [
             {
                 "name": "Starship Command",
@@ -216,150 +219,6 @@
         "created_date": "2025-08-16"
     },
     {
-        "id": "medieval_kingdom",
-        "name": "Medieval Court Intrigue",
-        "description": "Navigate the treacherous politics of a medieval kingdom. As a newly appointed court advisor, your decisions will determine the fate of the realm.",
-        "genre": "historical",
-        "difficulty": "medium",
-        "estimated_length": "15-25 turns",
-        "initial_prompt": "You are the storyteller of a tale of medieval court intrigue. {character_name} has just been appointed as a royal advisor to King Aldric of Westmarch. You must guide {character_name} through political machinations, noble rivalries, and threats to the kingdom, where every decision could mean the difference between prosperity and civil war.",
-        "setting": "Medieval Kingdom of Westmarch",
-        "themes": [
-            "politics",
-            "strategy",
-            "nobility",
-            "medieval life"
-        ],
-        "skills": [
-            {
-                "name": "Political Acumen",
-                "description": "Navigate court politics, understand noble motivations, and build strategic alliances."
-            },
-            {
-                "name": "Military Strategy",
-                "description": "Plan battles, understand troop movements, and advise on matters of war and defense."
-            },
-            {
-                "name": "Scholarly Knowledge",
-                "description": "Access to extensive learning including history, law, and ancient texts for guidance."
-            },
-            {
-                "name": "Courtly Manners",
-                "description": "Master the subtle art of etiquette, flattery, and reading between the lines in noble society."
-            }
-        ],
-        "weapons": [
-            {
-                "name": "Royal Seal Sword",
-                "description": "An ornate longsword bearing the king's seal, marking you as an agent of royal authority."
-            },
-            {
-                "name": "Crossbow of Truth",
-                "description": "A precision crossbow said to never miss when used in the service of justice."
-            },
-            {
-                "name": "Ceremonial Mace",
-                "description": "A symbol of office that doubles as a formidable weapon in times of need."
-            },
-            {
-                "name": "Hidden Dagger",
-                "description": "A concealed blade for when diplomacy fails and survival becomes paramount."
-            }
-        ],
-        "tools": [
-            {
-                "name": "Royal Seal Ring",
-                "description": "The king's signet ring that authenticates royal decrees and opens doors throughout the realm."
-            },
-            {
-                "name": "Coded Messenger Scrolls",
-                "description": "Encrypted parchments for secure communication with spies and allies across the kingdom."
-            },
-            {
-                "name": "Noble's Purse",
-                "description": "A well-stocked money pouch for bribes, rewards, and funding covert operations."
-            },
-            {
-                "name": "Ancient Law Tome",
-                "description": "A comprehensive legal reference containing precedents useful for political maneuvering."
-            }
-        ],
-        "author": "AI Game System",
-        "created_date": "2025-08-16"
-    },
-    {
-        "id": "horror_mansion",
-        "name": "Haunted Mansion Mystery",
-        "description": "Explore a cursed Victorian mansion where reality bends and shadows hide terrible secrets. Survival depends on your wits and courage.",
-        "genre": "horror",
-        "difficulty": "hard",
-        "estimated_length": "10-15 turns",
-        "initial_prompt": "You are the narrator of a chilling horror tale set in the abandoned Blackwood Manor. {character_name} has inherited this cursed Victorian mansion, but soon discovers that some inheritances come with a deadly price. You must guide {character_name} through supernatural encounters, psychological terror, and ancient curses, where every choice could be their last.",
-        "setting": "Victorian Mansion, Modern Day",
-        "themes": [
-            "supernatural",
-            "psychological horror",
-            "mystery",
-            "survival"
-        ],
-        "skills": [
-            {
-                "name": "Occult Knowledge",
-                "description": "Understanding of supernatural phenomena, protective rituals, and how to banish malevolent spirits."
-            },
-            {
-                "name": "Psychological Resilience",
-                "description": "Maintain sanity and composure when faced with terror and disturbing revelations."
-            },
-            {
-                "name": "Paranormal Investigation",
-                "description": "Use modern equipment and techniques to detect and document supernatural activity."
-            },
-            {
-                "name": "Survival Instincts",
-                "description": "Sense danger, find escape routes, and make quick decisions when life is threatened."
-            }
-        ],
-        "weapons": [
-            {
-                "name": "Blessed Silver Cross",
-                "description": "A holy relic that repels evil spirits and provides protection against supernatural attacks."
-            },
-            {
-                "name": "Iron Crowbar",
-                "description": "Cold iron that spirits cannot touch, useful for both breaking barriers and self-defense."
-            },
-            {
-                "name": "Salt Shotgun",
-                "description": "A modified shotgun loaded with consecrated salt rounds, effective against ghostly apparitions."
-            },
-            {
-                "name": "Ancestral Grimoire",
-                "description": "An ancient book of protective spells and banishment rituals inherited with the mansion."
-            }
-        ],
-        "tools": [
-            {
-                "name": "EMF Detector",
-                "description": "Electronic device that detects electromagnetic fluctuations caused by supernatural presence."
-            },
-            {
-                "name": "Blessed Candles",
-                "description": "Consecrated candles that provide protection circles and reveal hidden supernatural entities."
-            },
-            {
-                "name": "Spirit Board",
-                "description": "A Ouija board for communicating with spirits, though using it carries significant risks."
-            },
-            {
-                "name": "Protective Amulets",
-                "description": "A collection of blessed talismans from various faiths offering spiritual protection."
-            }
-        ],
-        "author": "AI Game System",
-        "created_date": "2025-08-16"
-    },
-    {
         "id": "pirate_adventure",
         "name": "Caribbean Pirate Adventure",
         "description": "Sail the Caribbean seas as a pirate captain seeking legendary treasure. Navigate storms, rival crews, and the British Navy in your quest for gold and glory.",
@@ -374,6 +233,7 @@
             "naval combat",
             "loyalty"
         ],
+    "image": "scenes/noir_scene.png",
         "skills": [
             {
                 "name": "Seamanship",
