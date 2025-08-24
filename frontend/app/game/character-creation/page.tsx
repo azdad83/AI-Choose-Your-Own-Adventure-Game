@@ -95,33 +95,45 @@ const getSkillIcon = (skillName: string) => {
   return <Star className="w-6 h-6" />; // Default icon
 };
 
-// Default tool options remain the same since they're not story-specific
-const toolOptions: CharacterOption[] = [
-  {
-    id: "lockpicks",
-    name: "Lockpicks",
-    description: "Open doors and chests",
-    icon: <span className="text-xl">🔓</span>
-  },
-  {
-    id: "rope",
-    name: "Rope",
-    description: "Climb and secure pathways",
-    icon: <span className="text-xl">🪢</span>
-  },
-  {
-    id: "compass",
-    name: "Compass",
-    description: "Never lose your way",
-    icon: <span className="text-xl">🧭</span>
-  },
-  {
-    id: "torch",
-    name: "Torch",
-    description: "Light up dark places",
-    icon: <span className="text-xl">🔦</span>
+const getToolIcon = (toolName: string) => {
+  const iconMap: { [key: string]: React.ReactNode } = {
+    'rope': <span className="text-xl">🪢</span>,
+    'compass': <span className="text-xl">🧭</span>,
+    'lantern': <span className="text-xl">🏮</span>,
+    'candle': <span className="text-xl">🕯️</span>,
+    'pouch': <span className="text-xl">💰</span>,
+    'notebook': <span className="text-xl">📓</span>,
+    'lockpick': <span className="text-xl">🔓</span>,
+    'badge': <span className="text-xl">🏅</span>,
+    'flask': <span className="text-xl">🍶</span>,
+    'translator': <span className="text-xl">🌐</span>,
+    'scanner': <span className="text-xl">📡</span>,
+    'beacon': <span className="text-xl">📡</span>,
+    'repair': <span className="text-xl">🔧</span>,
+    'seal': <span className="text-xl">💍</span>,
+    'scroll': <span className="text-xl">📜</span>,
+    'purse': <span className="text-xl">💰</span>,
+    'tome': <span className="text-xl">📖</span>,
+    'emf': <span className="text-xl">📡</span>,
+    'detector': <span className="text-xl">📡</span>,
+    'board': <span className="text-xl">👻</span>,
+    'amulet': <span className="text-xl">🧿</span>,
+    'map': <span className="text-xl">🗺️</span>,
+    'spyglass': <span className="text-xl">🔭</span>,
+    'telescope': <span className="text-xl">🔭</span>,
+    'bottle': <span className="text-xl">🍺</span>,
+    'rum': <span className="text-xl">🍺</span>
+  };
+  
+  // Find matching icon based on tool name keywords
+  for (const [key, icon] of Object.entries(iconMap)) {
+    if (toolName.toLowerCase().includes(key)) {
+      return icon;
+    }
   }
-];
+  
+  return <Wrench className="w-6 h-6" />; // Default icon
+};
 
 export default function CharacterCreationPage() {
   return (
@@ -176,6 +188,14 @@ function CharacterCreationContent() {
     name: skill.name,
     description: skill.description,
     icon: getSkillIcon(skill.name)
+  })) || [];
+
+  // Generate tool options from story data
+  const toolOptions: CharacterOption[] = story?.tools.map((tool) => ({
+    id: tool.name.toLowerCase().replace(/\s+/g, '_'),
+    name: tool.name,
+    description: tool.description,
+    icon: getToolIcon(tool.name)
   })) || [];
 
   const handleNext = () => {

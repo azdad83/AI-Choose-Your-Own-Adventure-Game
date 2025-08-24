@@ -45,6 +45,10 @@ class Weapon(BaseModel):
     name: str
     description: str
 
+class Tool(BaseModel):
+    name: str
+    description: str
+
 class Story(BaseModel):
     id: str
     name: str
@@ -56,6 +60,7 @@ class Story(BaseModel):
     themes: List[str]
     skills: List[Skill]
     weapons: List[Weapon]
+    tools: List[Tool]
     author: Optional[str] = None
     createdDate: Optional[str] = None
 
@@ -177,6 +182,7 @@ async def get_stories():
                 themes=story_data.get("themes", []),
                 skills=[Skill(name=skill["name"], description=skill["description"]) for skill in story_data.get("skills", [])],
                 weapons=[Weapon(name=weapon["name"], description=weapon["description"]) for weapon in story_data.get("weapons", [])],
+                tools=[Tool(name=tool["name"], description=tool["description"]) for tool in story_data.get("tools", [])],
                 author=story_data.get("author"),
                 createdDate=story_data.get("created_date")
             )
@@ -205,6 +211,7 @@ async def get_story(story_id: str):
             themes=story_data.get("themes", []),
             skills=[Skill(name=skill["name"], description=skill["description"]) for skill in story_data.get("skills", [])],
             weapons=[Weapon(name=weapon["name"], description=weapon["description"]) for weapon in story_data.get("weapons", [])],
+            tools=[Tool(name=tool["name"], description=tool["description"]) for tool in story_data.get("tools", [])],
             author=story_data.get("author"),
             createdDate=story_data.get("created_date")
         )
@@ -330,6 +337,7 @@ Begin the adventure:"""
             themes=story_data.get("themes", []),
             skills=[Skill(name=skill["name"], description=skill["description"]) for skill in story_data.get("skills", [])],
             weapons=[Weapon(name=weapon["name"], description=weapon["description"]) for weapon in story_data.get("weapons", [])],
+            tools=[Tool(name=tool["name"], description=tool["description"]) for tool in story_data.get("tools", [])],
             author=story_data.get("author"),
             createdDate=story_data.get("created_date")
         )
@@ -396,6 +404,7 @@ async def get_session(session_id: str):
             themes=story_data.get("themes", []),
             skills=[Skill(name=skill["name"], description=skill["description"]) for skill in story_data.get("skills", [])],
             weapons=[Weapon(name=weapon["name"], description=weapon["description"]) for weapon in story_data.get("weapons", [])],
+            tools=[Tool(name=tool["name"], description=tool["description"]) for tool in story_data.get("tools", [])],
             author=story_data.get("author"),
             createdDate=story_data.get("created_date")
         )

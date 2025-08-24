@@ -13,7 +13,8 @@ A RAG (Retrieval-Augmented Generation) powered interactive storytelling game usi
 ### Core Gameplay
 
 - **Dynamic Story Selection**: Choose from 6 unique adventures (Fantasy, Noir Detective, Space Exploration, Medieval Court, Horror Mansion, Pirate Adventure)
-- **Character Creation System**: 3-step character setup with weapon, skill, and tool selection
+- **Character Creation System**: 3-step character setup with predefined weapon, skill, and tool options
+- **AI-Powered Storytelling**: Dynamic narrative generation focused on story progression and player choices
 - **Intelligent Choice System**: Each turn offers 3 AI-generated choices plus custom action option
 - **Session Persistence**: Continue previous adventures or start fresh with full context retention
 - **Turn-Based Safety**: Minimum 10 turns before death scenarios become possible
@@ -24,9 +25,9 @@ A RAG (Retrieval-Augmented Generation) powered interactive storytelling game usi
 2. **Story Selection**: Choose from available story genres and difficulties
 3. **Character Creation**:
    - Enter character name
-   - Select starting weapon (3 AI-generated options)
-   - Select starting skill (3 AI-generated options)
-   - Select starting tool (3 AI-generated options)
+   - Select starting weapon (4 predefined thematic options)
+   - Select starting skill (4 predefined story-appropriate options)
+   - Select starting tool (4 predefined adventure-specific options)
 4. **Adventure Gameplay**: Interactive storytelling with choice-driven narrative
 5. **Session Management**: Progress automatically saved after each turn
 
@@ -191,11 +192,11 @@ pip install -r requirements.txt
 The character creation system guides players through a 3-step process:
 
 1. **Character Name**: Players enter a unique name for their character
-2. **Weapon Selection**: AI generates 3 thematic weapons based on story genre/setting
-3. **Skill Selection**: AI generates 3 appropriate skills for the chosen story
-4. **Tool Selection**: AI generates 3 useful tools that complement the adventure
+2. **Weapon Selection**: Choose from 4 predefined thematic weapons specific to the story genre/setting
+3. **Skill Selection**: Choose from 4 predefined skills appropriate for the chosen story
+4. **Tool Selection**: Choose from 4 predefined useful tools that complement the adventure
 
-Each selection is contextual to the chosen story and influences gameplay mechanics.
+Each selection is story-specific and defined in the JSON configuration, ensuring balanced and thematic character builds that influence gameplay mechanics.
 
 ## Managing Game Data
 

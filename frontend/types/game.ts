@@ -1,3 +1,8 @@
+export interface Tool {
+  name: string;
+  description: string;
+}
+
 export interface Story {
   id: string;
   name: string;
@@ -9,6 +14,7 @@ export interface Story {
   themes: string[];
   skills: Skill[];
   weapons: Weapon[];
+  tools: Tool[];
   initialPrompt?: string;
   author?: string;
   createdDate?: string;

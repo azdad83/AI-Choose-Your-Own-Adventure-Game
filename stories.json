@@ -50,6 +50,24 @@
                 "description": "A protective shield that changes its properties with the seasons, offering different magical resistances."
             }
         ],
+        "tools": [
+            {
+                "name": "Elven Rope",
+                "description": "Magical rope that can extend to any length needed and becomes invisible when desired."
+            },
+            {
+                "name": "Crystal Compass",
+                "description": "A mystical compass that points toward your heart's desire rather than magnetic north."
+            },
+            {
+                "name": "Fairy Lantern",
+                "description": "A lantern containing friendly sprites that provide light and can reveal hidden magical auras."
+            },
+            {
+                "name": "Pouch of Endless Provisions",
+                "description": "A magical pouch that always contains the exact food or drink you need for survival."
+            }
+        ],
         "author": "AI Game System",
         "created_date": "2025-08-16"
     },
@@ -102,6 +120,24 @@
             {
                 "name": "Cigarette Case Camera",
                 "description": "A hidden camera disguised as a cigarette case for gathering evidence without being noticed."
+            }
+        ],
+        "tools": [
+            {
+                "name": "Detective's Notebook",
+                "description": "A leather-bound notebook for recording clues, suspect details, and connecting evidence."
+            },
+            {
+                "name": "Lockpick Set",
+                "description": "Professional tools for gaining access to locked doors, safes, and filing cabinets."
+            },
+            {
+                "name": "Police Badge & Credentials",
+                "description": "Official identification that opens doors and encourages cooperation from witnesses."
+            },
+            {
+                "name": "Hip Flask",
+                "description": "Contains liquid courage for tough interrogations and cold nights on stakeouts."
             }
         ],
         "author": "AI Game System",
@@ -158,6 +194,24 @@
                 "description": "A melee weapon with an edge sharpened at the molecular level, capable of cutting through most materials including light armor."
             }
         ],
+        "tools": [
+            {
+                "name": "Universal Translator",
+                "description": "Advanced device that instantly translates alien languages and cultural contexts in real-time."
+            },
+            {
+                "name": "Biometric Scanner",
+                "description": "Portable device that analyzes alien physiology, toxins, and environmental hazards."
+            },
+            {
+                "name": "Emergency Beacon",
+                "description": "Quantum-entangled communicator that can send distress signals across galactic distances."
+            },
+            {
+                "name": "Nano-Repair Kit",
+                "description": "Self-assembling nanobots that can repair equipment, seal hull breaches, and provide medical aid."
+            }
+        ],
         "author": "AI Game System",
         "created_date": "2025-08-16"
     },
@@ -210,6 +264,24 @@
             {
                 "name": "Hidden Dagger",
                 "description": "A concealed blade for when diplomacy fails and survival becomes paramount."
+            }
+        ],
+        "tools": [
+            {
+                "name": "Royal Seal Ring",
+                "description": "The king's signet ring that authenticates royal decrees and opens doors throughout the realm."
+            },
+            {
+                "name": "Coded Messenger Scrolls",
+                "description": "Encrypted parchments for secure communication with spies and allies across the kingdom."
+            },
+            {
+                "name": "Noble's Purse",
+                "description": "A well-stocked money pouch for bribes, rewards, and funding covert operations."
+            },
+            {
+                "name": "Ancient Law Tome",
+                "description": "A comprehensive legal reference containing precedents useful for political maneuvering."
             }
         ],
         "author": "AI Game System",
@@ -266,6 +338,24 @@
                 "description": "An ancient book of protective spells and banishment rituals inherited with the mansion."
             }
         ],
+        "tools": [
+            {
+                "name": "EMF Detector",
+                "description": "Electronic device that detects electromagnetic fluctuations caused by supernatural presence."
+            },
+            {
+                "name": "Blessed Candles",
+                "description": "Consecrated candles that provide protection circles and reveal hidden supernatural entities."
+            },
+            {
+                "name": "Spirit Board",
+                "description": "A Ouija board for communicating with spirits, though using it carries significant risks."
+            },
+            {
+                "name": "Protective Amulets",
+                "description": "A collection of blessed talismans from various faiths offering spiritual protection."
+            }
+        ],
         "author": "AI Game System",
         "created_date": "2025-08-16"
     },
@@ -318,6 +408,24 @@
             {
                 "name": "Boarding Axe",
                 "description": "A versatile weapon for cutting rigging, breaking down doors, and close-quarters fighting."
+            }
+        ],
+        "tools": [
+            {
+                "name": "Treasure Map",
+                "description": "A weathered parchment showing the location of Captain Blackheart's legendary treasure."
+            },
+            {
+                "name": "Captain's Spyglass",
+                "description": "A brass telescope for spotting distant ships, land, and navigational hazards."
+            },
+            {
+                "name": "Ship's Compass",
+                "description": "A reliable magnetic compass essential for navigation across the open seas."
+            },
+            {
+                "name": "Rum Bottle",
+                "description": "Fine Caribbean rum for medicating wounds, bribing informants, and boosting crew morale."
             }
         ],
         "author": "AI Game System",
