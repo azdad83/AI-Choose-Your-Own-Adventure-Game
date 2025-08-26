@@ -122,27 +122,27 @@ export default function StorySelectionPage() {
                   }}
                 >
                   {/* Dark overlay for text readability */}
-                  <div className="absolute inset-0 bg-black/60" />
+                  <div className="absolute inset-0 bg-black/20" />
                   
                   {/* Content */}
                   <div className="relative z-10 p-6 h-full flex flex-col justify-between">
-                    {/* Top section with emoji and difficulty */}
-                    <div className="flex items-center justify-between">
-                      <div className="text-3xl">{getStoryEmoji(story.genre)}</div>
+                    {/* Top section with title, setting and difficulty */}
+                    <div className="flex items-start justify-between">
+                      <div className="text-left">
+                        <h3 className="text-white text-xl font-bold mb-1">
+                          {story.name}
+                        </h3>
+                        <p className="text-gray-300 text-sm">
+                          {story.setting}
+                        </p>
+                      </div>
                       <Badge className={getDifficultyColor(story.difficulty)}>
                         {story.difficulty}
                       </Badge>
                     </div>
                     
-                    {/* Bottom section with title and setting */}
-                    <div className="text-left">
-                      <h3 className="text-white text-xl font-bold mb-2">
-                        {story.name}
-                      </h3>
-                      <p className="text-gray-300 text-sm">
-                        {story.setting}
-                      </p>
-                    </div>
+                    {/* Empty bottom section to maintain card height */}
+                    <div></div>
                   </div>
                 </Card>
               ))}

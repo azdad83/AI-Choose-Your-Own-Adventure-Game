@@ -23,24 +23,21 @@ class StoryManager:
     
     def __init__(self, stories_file: str = "stories.json"):
         self.stories_file = stories_file
-        self._stories_cache = None
     
     def _load_stories(self) -> List[Dict[str, Any]]:
-        """Load stories from JSON file with caching."""
-        if self._stories_cache is None:
-            try:
-                if os.path.exists(self.stories_file):
-                    with open(self.stories_file, 'r', encoding='utf-8') as f:
-                        self._stories_cache = json.load(f)
-                        print(f"✓ Loaded {len(self._stories_cache)} stories from {self.stories_file}")
-                else:
-                    print(f"⚠️  Stories file {self.stories_file} not found. Using default story.")
-                    self._stories_cache = []
-            except Exception as e:
-                print(f"❌ Error loading stories from {self.stories_file}: {e}")
-                self._stories_cache = []
-        
-        return self._stories_cache
+        """Load stories from JSON file (no caching - always fresh)."""
+        try:
+            if os.path.exists(self.stories_file):
+                with open(self.stories_file, 'r', encoding='utf-8') as f:
+                    stories = json.load(f)
+                    print(f"✓ Loaded {len(stories)} stories from {self.stories_file}")
+                    return stories
+            else:
+                print(f"⚠️  Stories file {self.stories_file} not found. Using empty story list.")
+                return []
+        except Exception as e:
+            print(f"❌ Error loading stories from {self.stories_file}: {e}")
+            return []
     
     def get_all_stories(self) -> List[Dict[str, Any]]:
         """Get all available stories from the JSON file."""

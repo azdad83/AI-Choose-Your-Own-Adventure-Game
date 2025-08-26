@@ -44,6 +44,7 @@ class Skill(BaseModel):
 class Weapon(BaseModel):
     name: str
     description: str
+    image: Optional[str] = None
 
 class Tool(BaseModel):
     name: str
@@ -182,8 +183,9 @@ async def get_stories():
                 setting=story_data.get("setting", ""),
                 themes=story_data.get("themes", []),
                 skills=[Skill(name=skill["name"], description=skill["description"]) for skill in story_data.get("skills", [])],
-                weapons=[Weapon(name=weapon["name"], description=weapon["description"]) for weapon in story_data.get("weapons", [])],
+                weapons=[Weapon(name=weapon["name"], description=weapon["description"], image=weapon.get("image")) for weapon in story_data.get("weapons", [])],
                 tools=[Tool(name=tool["name"], description=tool["description"]) for tool in story_data.get("tools", [])],
+                image=story_data.get("image"),
                 author=story_data.get("author"),
                 createdDate=story_data.get("created_date")
             )
@@ -211,8 +213,9 @@ async def get_story(story_id: str):
             setting=story_data.get("setting", ""),
             themes=story_data.get("themes", []),
             skills=[Skill(name=skill["name"], description=skill["description"]) for skill in story_data.get("skills", [])],
-            weapons=[Weapon(name=weapon["name"], description=weapon["description"]) for weapon in story_data.get("weapons", [])],
+            weapons=[Weapon(name=weapon["name"], description=weapon["description"], image=weapon.get("image")) for weapon in story_data.get("weapons", [])],
             tools=[Tool(name=tool["name"], description=tool["description"]) for tool in story_data.get("tools", [])],
+            image=story_data.get("image"),
             author=story_data.get("author"),
             createdDate=story_data.get("created_date")
         )
