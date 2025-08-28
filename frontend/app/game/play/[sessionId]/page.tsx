@@ -19,7 +19,9 @@ import {
 } from "lucide-react";
 import { useGameSession } from "@/hooks/use-game-api";
 import { GameMessage } from "@/types/game";
-import { GameMasterOrb } from "@/components/ui/game-master-orb";// Utility function to parse simple markdown
+import { GameMasterOrb } from "@/components/ui/game-master-orb";
+
+// Utility function to parse simple markdown
 const parseMarkdown = (text: string) => {
   // Split by paragraphs
   const paragraphs = text.split('\n\n');
@@ -245,6 +247,17 @@ export default function GamePlayPage() {
                   <span>•</span>
                   <span>Turn {session.currentTurn}</span>
                 </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant="secondary">{session.story.genre}</Badge>
+                  <Badge variant="secondary">{session.story.setting}</Badge>
+                  <Badge className={
+                    session.story.difficulty === 'easy' ? 'bg-green-500/20 text-green-400' :
+                      session.story.difficulty === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-red-500/20 text-red-400'
+                  }>
+                    {session.story.difficulty}
+                  </Badge>
+                </div>
               </div>
             </div>
 
@@ -271,67 +284,7 @@ export default function GamePlayPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6 h-[calc(100vh-88px)] flex flex-col lg:flex-row gap-6">
-        {/* Sidebar - Character & Story Info */}
-        <div className="lg:w-80 space-y-4">
-          {/* Character Card */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <User className="w-5 h-5" />
-                {session.character.name}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {session.character.weapon && (
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Weapon:</span>
-                  <Badge variant="secondary">⚔️ {session.character.weapon}</Badge>
-                </div>
-              )}
-              {session.character.skill && (
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Skill:</span>
-                  <Badge variant="secondary">⭐ {session.character.skill}</Badge>
-                </div>
-              )}
-              {session.character.tool && (
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Tool:</span>
-                  <Badge variant="secondary">🔧 {session.character.tool}</Badge>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Story Info */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white text-lg">{session.story.name}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-400">Genre:</span>
-                <Badge variant="secondary">{session.story.genre}</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Setting:</span>
-                <span className="text-white text-sm">{session.story.setting}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Difficulty:</span>
-                <Badge className={
-                  session.story.difficulty === 'easy' ? 'bg-green-500/20 text-green-400' :
-                    session.story.difficulty === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                      'bg-red-500/20 text-red-400'
-                }>
-                  {session.story.difficulty}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
+      <div className="container mx-auto px-4 py-6 h-[calc(100vh-88px)] flex flex-col">
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col min-h-0">
           {/* Messages */}
