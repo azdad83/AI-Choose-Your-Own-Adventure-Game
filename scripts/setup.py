@@ -73,7 +73,7 @@ def main():
     
     print("\n" + "=" * 55)
     print("🎉 Setup complete! You can now run the game:")
-    print("   python start_game.py")
+    print("   python scripts/start_game.py")
     print("   or")
     print("   python main.py")
     print("=" * 55)

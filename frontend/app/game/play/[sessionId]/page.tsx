@@ -7,14 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  ArrowLeft, 
-  Send, 
-  User, 
-  Bot, 
+import {
+  ArrowLeft,
+  Send,
+  User,
+  Bot,
   Settings,
   Volume2,
-  VolumeX 
+  VolumeX
 } from "lucide-react";
 import { useGameSession } from "@/hooks/use-game-api";
 import { GameMessage } from "@/types/game";
@@ -23,10 +23,10 @@ import { GameMessage } from "@/types/game";
 const parseMarkdown = (text: string) => {
   // Split by paragraphs
   const paragraphs = text.split('\n\n');
-  
+
   return paragraphs.map((paragraph, pIndex) => {
     const lines = paragraph.split('\n');
-    
+
     return (
       <div key={pIndex} className={pIndex > 0 ? 'mt-4' : ''}>
         {lines.map((line, lIndex) => {
@@ -43,7 +43,7 @@ const parseMarkdown = (text: string) => {
             trimmedLine.toLowerCase().includes('your decision') ||
             (trimmedLine.toLowerCase().startsWith('what') && trimmedLine.includes('you'))
           );
-          
+
           // Parse both single and double asterisk formatting
           const parts = line.split(/(\*\*.*?\*\*|\*.*?\*)/g);
           const renderedLine = parts.map((part, index) => {
@@ -58,10 +58,10 @@ const parseMarkdown = (text: string) => {
             }
             return part;
           });
-          
+
           return (
-            <div 
-              key={lIndex} 
+            <div
+              key={lIndex}
               className={`${isQuestion ? 'font-bold text-purple-100 mt-6 text-2xl border-l-4 border-purple-400 pl-4 py-3 bg-purple-900/20 rounded-r-lg' : ''} ${lIndex > 0 ? 'mt-1' : ''}`}
             >
               {renderedLine}
@@ -77,7 +77,7 @@ const parseMarkdown = (text: string) => {
 const parseChoice = (choice: string) => {
   // Remove leading/trailing whitespace
   const trimmed = choice.trim();
-  
+
   // Look for bold text at the beginning (either at start or after **)
   const boldMatch = trimmed.match(/^\*\*(.*?)\*\*\s*(.*)$/);
   if (boldMatch) {
@@ -86,20 +86,20 @@ const parseChoice = (choice: string) => {
       content: boldMatch[2].trim()
     };
   }
-  
+
   // Look for bold text anywhere in the string
   const anyBoldMatch = trimmed.match(/^(.*?)\*\*(.*?)\*\*(.*)$/);
   if (anyBoldMatch) {
     const beforeBold = anyBoldMatch[1].trim();
     const boldText = anyBoldMatch[2].trim();
     const afterBold = anyBoldMatch[3].trim();
-    
+
     return {
       header: boldText,
       content: [beforeBold, afterBold].filter(text => text.length > 0).join(' ')
     };
   }
-  
+
   // Try to split on first period or sentence
   const sentences = trimmed.split(/\.\s+/);
   if (sentences.length > 1) {
@@ -108,7 +108,7 @@ const parseChoice = (choice: string) => {
       content: sentences.slice(1).join('. ')
     };
   }
-  
+
   // Fallback: treat entire text as header
   return {
     header: trimmed,
@@ -120,7 +120,7 @@ export default function GamePlayPage() {
   const router = useRouter();
   const params = useParams();
   const sessionId = params.sessionId as string;
-  
+
   const { session, messages, loading, error, sendMessage } = useGameSession(sessionId);
   const [newMessage, setNewMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -130,11 +130,11 @@ export default function GamePlayPage() {
 
   const scrollToLatestMessage = useCallback(() => {
     // If there are messages, try to scroll to the latest AI message
-    if (messages.length > 0) {
+    if (messages && messages.length > 0) {
       const latestMessage = messages[messages.length - 1];
       if (latestMessage.type === 'ai' && latestAiMessageRef.current) {
         // Scroll to the top of the latest AI message
-        latestAiMessageRef.current.scrollIntoView({ 
+        latestAiMessageRef.current.scrollIntoView({
           behavior: "smooth",
           block: "start",
           inline: "nearest"
@@ -209,8 +209,8 @@ export default function GamePlayPage() {
           <p className="text-red-400 mb-4">
             {error || 'Session not found'}
           </p>
-          <Button 
-            onClick={handleReturnToMenu} 
+          <Button
+            onClick={handleReturnToMenu}
             className="bg-purple-600 hover:bg-purple-700"
           >
             Return to Menu
@@ -236,7 +236,7 @@ export default function GamePlayPage() {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Menu
               </Button>
-              
+
               <div>
                 <h1 className="text-xl font-bold text-white">{session.story.name}</h1>
                 <div className="flex items-center gap-2 text-sm text-gray-400">
@@ -257,7 +257,7 @@ export default function GamePlayPage() {
               >
                 {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
               </Button>
-              
+
               <Button
                 onClick={handleSessionSettings}
                 variant="ghost"
@@ -322,8 +322,8 @@ export default function GamePlayPage() {
                 <span className="text-gray-400">Difficulty:</span>
                 <Badge className={
                   session.story.difficulty === 'easy' ? 'bg-green-500/20 text-green-400' :
-                  session.story.difficulty === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                  'bg-red-500/20 text-red-400'
+                    session.story.difficulty === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                      'bg-red-500/20 text-red-400'
                 }>
                   {session.story.difficulty}
                 </Badge>
@@ -337,7 +337,7 @@ export default function GamePlayPage() {
           {/* Messages */}
           <ScrollArea className="flex-1 pr-4 mb-4 max-h-[calc(100vh-240px)]">
             <div className="space-y-4">
-              {messages.map((message: GameMessage, index: number) => {
+              {messages && messages.length > 0 ? messages.map((message: GameMessage, index: number) => {
                 const isLatestAiMessage = message.type === 'ai' && index === messages.length - 1;
                 return (
                   <div
@@ -345,98 +345,100 @@ export default function GamePlayPage() {
                     ref={isLatestAiMessage ? latestAiMessageRef : null}
                     className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                  <div className={`${message.type === 'user' ? 'max-w-[80%]' : 'w-full'} ${
-                    message.type === 'user' 
-                      ? 'bg-purple-600 text-white' 
-                      : message.type === 'ai'
-                      ? 'bg-slate-700 text-gray-100'
-                      : 'bg-slate-600 text-gray-300'
-                  } rounded-lg p-4 shadow-lg`}>
-                    <div className="flex items-center gap-2 mb-2">
-                      {message.type === 'user' ? (
-                        <User className="w-4 h-4" />
-                      ) : (
-                        <Bot className="w-4 h-4" />
-                      )}
-                      <span className="text-sm font-medium">
-                        {message.type === 'user' ? session.character.name : 'Game Master'}
-                      </span>
-                      <span className="text-xs opacity-75 ml-auto">
-                        {formatTimestamp(message.timestamp)}
-                      </span>
-                    </div>
-                    <div className="leading-relaxed">
-                      {message.type === 'ai' ? parseMarkdown(message.content) : (
-                        <div className="whitespace-pre-wrap">{message.content}</div>
-                      )}
-                    </div>
-                    
-                    {/* Choice cards for AI messages */}
-                    {message.type === 'ai' && message.choices && message.choices.length > 0 && (
-                      <div className="mt-4 grid gap-3" style={{ gridTemplateColumns: `repeat(${message.choices.length}, 1fr)` }}>
-                        {message.choices.map((choice, index) => {
-                          const parsedChoice = parseChoice(choice);
-                          return (
-                            <div
-                              key={index}
-                              role="button"
-                              tabIndex={0}
-                              onClick={async (e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                
-                                if (isSending || !session) {
-                                  console.log('Choice blocked:', { isSending, session: !!session });
-                                  return;
-                                }
-                                
-                                console.log('Choice clicked:', choice);
-                                console.log('Current loading state:', loading);
-                                console.log('Current isSending state:', isSending);
-                                
-                                // Send only the clean header text without markdown or punctuation
-                                const cleanAction = parsedChoice.header.replace(/\*\*/g, '').replace(/\*/g, '').replace(/:$/, '').trim();
-                                
-                                try {
-                                  setIsSending(true);
-                                  console.log('About to send message:', cleanAction);
-                                  await sendMessage(cleanAction);
-                                  console.log('Message sent successfully');
-                                } catch (error) {
-                                  console.error('Failed to send choice:', error);
-                                } finally {
-                                  setIsSending(false);
-                                  console.log('isSending set to false');
-                                }
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault();
-                                  e.currentTarget.click();
-                                }
-                              }}
-                              className={`cursor-pointer transition-all duration-200 bg-slate-800 border border-slate-600 rounded-lg p-4 hover:bg-slate-700 hover:border-slate-500 ${
-                                isSending ? 'opacity-50 cursor-not-allowed' : ''
-                              }`}
-                            >
-                              <div className="text-gray-100 font-medium text-sm mb-2">
-                                {parsedChoice.header}
-                              </div>
-                              {parsedChoice.content && (
-                                <div className="text-gray-300 text-xs leading-relaxed">
-                                  {parsedChoice.content}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                    <div className={`${message.type === 'user' ? 'max-w-[80%]' : 'w-full'} ${message.type === 'user'
+                        ? 'bg-purple-600 text-white'
+                        : message.type === 'ai'
+                          ? 'bg-slate-700 text-gray-100'
+                          : 'bg-slate-600 text-gray-300'
+                      } rounded-lg p-4 shadow-lg`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        {message.type === 'user' ? (
+                          <User className="w-4 h-4" />
+                        ) : (
+                          <Bot className="w-4 h-4" />
+                        )}
+                        <span className="text-sm font-medium">
+                          {message.type === 'user' ? session.character.name : 'Game Master'}
+                        </span>
+                        <span className="text-xs opacity-75 ml-auto">
+                          {formatTimestamp(message.timestamp)}
+                        </span>
                       </div>
-                    )}
+                      <div className="leading-relaxed">
+                        {message.type === 'ai' ? parseMarkdown(message.content) : (
+                          <div className="whitespace-pre-wrap">{message.content}</div>
+                        )}
+                      </div>
+
+                      {/* Choice cards for AI messages */}
+                      {message.type === 'ai' && message.choices && message.choices.length > 0 && (
+                        <div className="mt-4 grid gap-3" style={{ gridTemplateColumns: `repeat(${message.choices.length}, 1fr)` }}>
+                          {message.choices.map((choice, index) => {
+                            const parsedChoice = parseChoice(choice);
+                            return (
+                              <div
+                                key={index}
+                                role="button"
+                                tabIndex={0}
+                                onClick={async (e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+
+                                  if (isSending || !session) {
+                                    console.log('Choice blocked:', { isSending, session: !!session });
+                                    return;
+                                  }
+
+                                  console.log('Choice clicked:', choice);
+                                  console.log('Current loading state:', loading);
+                                  console.log('Current isSending state:', isSending);
+
+                                  // Send only the clean header text without markdown or punctuation
+                                  const cleanAction = parsedChoice.header.replace(/\*\*/g, '').replace(/\*/g, '').replace(/:$/, '').trim();
+
+                                  try {
+                                    setIsSending(true);
+                                    console.log('About to send message:', cleanAction);
+                                    await sendMessage(cleanAction);
+                                    console.log('Message sent successfully');
+                                  } catch (error) {
+                                    console.error('Failed to send choice:', error);
+                                  } finally {
+                                    setIsSending(false);
+                                    console.log('isSending set to false');
+                                  }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    e.currentTarget.click();
+                                  }
+                                }}
+                                className={`cursor-pointer transition-all duration-200 bg-slate-800 border border-slate-600 rounded-lg p-4 hover:bg-slate-700 hover:border-slate-500 ${isSending ? 'opacity-50 cursor-not-allowed' : ''
+                                  }`}
+                              >
+                                <div className="text-gray-100 font-medium text-sm mb-2">
+                                  {parsedChoice.header}
+                                </div>
+                                {parsedChoice.content && (
+                                  <div className="text-gray-300 text-xs leading-relaxed">
+                                    {parsedChoice.content}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
+                );
+              }) : (
+                <div className="text-center text-gray-400 py-8">
+                  <p>No messages yet. Start your adventure!</p>
                 </div>
-              );
-            })}
-              
+              )}
+
               {isSending && (
                 <div className="flex justify-start">
                   <div className="bg-slate-700 text-gray-100 rounded-lg p-4 shadow-lg">
@@ -452,7 +454,7 @@ export default function GamePlayPage() {
                   </div>
                 </div>
               )}
-              
+
               <div ref={messagesEndRef} />
             </div>
           </ScrollArea>

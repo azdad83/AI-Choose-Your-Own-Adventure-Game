@@ -58,10 +58,10 @@ export function useSessions() {
     fetchSessions();
   }, []);
 
-  return { 
-    sessions, 
-    loading, 
-    error, 
+  return {
+    sessions,
+    loading,
+    error,
     refetch: fetchSessions,
     deleteSessions: async (sessionId: string) => {
       try {
@@ -102,13 +102,14 @@ export function useGameSession(sessionId?: string) {
     try {
       setInitializing(true);
       setError(undefined);
-      
+
       // Clear any existing session first to force fresh load
       const client = isDevelopmentMode ? devGameApi : gameApi;
       const session = await client.getSession(id);
       const messages = await client.getMessages(id);
       setSession(session);
-      setMessages(messages);
+      // Ensure messages is always an array
+      setMessages(Array.isArray(messages) ? messages : []);
       return session;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load session';
@@ -126,7 +127,10 @@ export function useGameSession(sessionId?: string) {
 
     try {
       setError(undefined);
-      
+
+      // Ensure messages is an array - handle all possible cases
+      const currentMessages = Array.isArray(state.messages) ? state.messages : [];
+
       // Add user message immediately
       const userMessage = {
         id: `user-${Date.now()}`,
@@ -134,17 +138,19 @@ export function useGameSession(sessionId?: string) {
         content: message,
         timestamp: new Date().toISOString(),
       };
-      
-      setMessages([...state.messages, userMessage]);
-      
+
+      setMessages([...currentMessages, userMessage]);
+
       const client = isDevelopmentMode ? devGameApi : gameApi;
       const response = await client.sendMessage(state.session.sessionId, message);
-      
+
       // Add AI response
       const aiMessage = response.message;
-      
-      setMessages([...state.messages, userMessage, aiMessage]);
-      
+
+      // Get fresh messages state to ensure we have the user message
+      const updatedMessages = Array.isArray(state.messages) ? state.messages : [];
+      setMessages([...updatedMessages, userMessage, aiMessage]);
+
       return response;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
@@ -162,7 +168,7 @@ export function useGameSession(sessionId?: string) {
 
   return {
     session: state.session,
-    messages: state.messages,
+    messages: Array.isArray(state.messages) ? state.messages : [],
     loading: state.isLoading || initializing,
     error: state.error,
     createSession,
@@ -201,7 +207,7 @@ export function useCharacterCreation() {
         genre,
         setting
       );
-      
+
       setStepData(prev => ({
         ...prev,
         [step]: {
@@ -209,7 +215,7 @@ export function useCharacterCreation() {
           prompt: stepResponse.prompt,
         }
       }));
-      
+
       return stepResponse;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to get character creation step';
@@ -230,17 +236,17 @@ export function useCharacterCreation() {
       setError(undefined);
       const client = isDevelopmentMode ? devGameApi : gameApi;
       await client.submitCharacterChoice(sessionId, choiceType, choice);
-      
+
       // Update local character state
       updateCharacter({ [choiceType]: choice });
-      
+
       // Move to next step
       const stepOrder: ('weapon' | 'skill' | 'tool')[] = ['weapon', 'skill', 'tool'];
       const currentIndex = stepOrder.indexOf(currentStep);
       if (currentIndex < stepOrder.length - 1) {
         setCurrentStep(stepOrder[currentIndex + 1]);
       }
-      
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to submit character choice';
       setError(errorMessage);

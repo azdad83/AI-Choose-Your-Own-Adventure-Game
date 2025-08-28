@@ -89,11 +89,17 @@ def main():
     
     # Start the game
     try:
+        import sys
+        import os
+        # Add parent directory to path to import main
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         from main import main as game_main
         game_main()
     except ImportError:
         print("Running game directly...")
-        subprocess.run([sys.executable, 'main.py'])
+        # Navigate to parent directory and run main.py
+        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        subprocess.run([sys.executable, 'main.py'], cwd=parent_dir)
     
     return True
 

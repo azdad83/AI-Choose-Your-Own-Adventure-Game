@@ -14,7 +14,7 @@
             "quest",
             "fantasy creatures"
         ],
-    "image": "scenes/fantasy_scene.png",
+        "image": "scenes/fantasy_scene.png",
         "skills": [
             {
                 "name": "Nature Magic",
@@ -37,22 +37,22 @@
             {
                 "name": "Moonlit Bow",
                 "description": "An enchanted bow that glows with silver light and never misses its intended target.",
-                "image": "scenes/noir_scene.png"
+                "image": "weapons/moonlite_bow.png"
             },
             {
                 "name": "Crystal Staff",
                 "description": "A staff topped with a glowing crystal that amplifies magical abilities and can channel elemental forces.",
-                "image": "scenes/noir_scene.png"
+                "image": "weapons/crystal_staff.png"
             },
             {
                 "name": "Thorn Blade",
-                "description": "A sword grown from living wood, sharp as steel and capable of entangling enemies with magical vines.",
-                "image": "scenes/noir_scene.png"
+                "description": "The Thorn Blade extends from your grip like nature's own cruelty given form, its handle carved from a branch of blackthorn that grew in the deepest shadows of the Whisperwood.",
+                "image": "weapons/thorn_blade.png"
             },
             {
                 "name": "Shield of Seasons",
                 "description": "A protective shield that changes its properties with the seasons, offering different magical resistances.",
-                "image": "scenes/noir_scene.png"
+                "image": "weapons/shield_of_seasons.png"
             }
         ],
         "tools": [
@@ -91,7 +91,7 @@
             "investigation",
             "urban"
         ],
-    "image": "scenes/noir_scene.png",
+        "image": "scenes/noir_scene.png",
         "skills": [
             {
                 "name": "Street Smarts",
@@ -114,22 +114,22 @@
             {
                 "name": "Colt .38 Special Revolver",
                 "description": "A reliable six-shooter that's gotten you out of more tight spots than you can count.",
-                "image": "scenes/noir_scene.png"
+                "image": "weapons/colt_38.png"
             },
             {
                 "name": "Brass Knuckles",
                 "description": "When guns are too loud and fists aren't enough, these add the persuasion you need.",
-                "image": "scenes/noir_scene.png"
+                "image": "weapons/brass_knuckles.png"
             },
             {
                 "name": "Winchester Model 12 shotgun",
                 "description": "A reliable pump-action shotgun used by police for close-quarters situations",
-                "image": "scenes/noir_scene.png"
+                "image": "weapons/winchester_12.png"
             },
             {
                 "name": "Cigarette Case Camera",
                 "description": "A hidden camera disguised as a cigarette case for gathering evidence without being noticed.",
-                "image": "scenes/noir_scene.png"
+                "image": "weapons/cigarette_case_camera.png"
             }
         ],
         "tools": [
@@ -168,7 +168,7 @@
             "leadership",
             "moral choices"
         ],
-    "image": "scenes/future_scene.png",
+        "image": "scenes/future_scene.png",
         "skills": [
             {
                 "name": "Starship Command",
@@ -191,22 +191,22 @@
             {
                 "name": "Plasma Rifle",
                 "description": "An advanced energy weapon that fires superheated plasma bolts capable of melting through ship hulls.",
-                "image": "scenes/noir_scene.png"
+                "image": "weapons/plasma_rifle.png"
             },
             {
                 "name": "Gravity Hammer",
                 "description": "A melee weapon that manipulates gravitational fields to deliver devastating crushing blows.",
-                "image": "scenes/noir_scene.png"
+                "image": "weapons/gravity_hammer.png"
             },
             {
                 "name": "Neural Disruptor",
                 "description": "A non-lethal weapon that scrambles nervous systems, effective against most known alien species.",
-                "image": "scenes/noir_scene.png"
+                "image": "weapons/neural_disruptor.png"
             },
             {
                 "name": "Quantum Blade",
                 "description": "A melee weapon with an edge sharpened at the molecular level, capable of cutting through most materials including light armor.",
-                "image": "scenes/noir_scene.png"
+                "image": "weapons/quantum_blade.png"
             }
         ],
         "tools": [
@@ -245,7 +245,7 @@
             "naval combat",
             "loyalty"
         ],
-    "image": "scenes/pirate_scene.png",
+        "image": "scenes/pirate_scene.png",
         "skills": [
             {
                 "name": "Seamanship",
@@ -268,22 +268,22 @@
             {
                 "name": "Captain's Cutlass",
                 "description": "A razor-sharp curved sword perfectly balanced for ship-to-ship combat and dueling.",
-                "image": "scenes/noir_scene.png"
+                "image": "weapons/cutlass.png"
             },
             {
                 "name": "Flintlock Pistol",
                 "description": "A reliable single-shot firearm that's saved your life more times than you can remember.",
-                "image": "scenes/noir_scene.png"
+                "image": "weapons/pirate_pistol.png"
             },
             {
                 "name": "Naval Cannon",
                 "description": "Ship-mounted artillery that can blast holes in enemy hulls or clear beaches for landing.",
-                "image": "scenes/noir_scene.png"
+                "image": "weapons/naval_cannon.png"
             },
             {
                 "name": "Boarding Axe",
                 "description": "A versatile weapon for cutting rigging, breaking down doors, and close-quarters fighting.",
-                "image": "scenes/noir_scene.png"
+                "image": "weapons/boarding_axe.png"
             }
         ],
         "tools": [

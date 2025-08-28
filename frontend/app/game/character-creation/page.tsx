@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ArrowLeft, ArrowRight, Sword, Wrench, Star, User } from "lucide-react";
 import { useStories } from "@/hooks/use-game-api";
 import { Character, Story } from "@/types/game";
@@ -17,6 +18,7 @@ interface CharacterOption {
   name: string;
   description: string;
   icon: React.ReactNode;
+  image?: string;
 }
 
 // Helper functions to convert story data to character options
@@ -42,14 +44,14 @@ const getWeaponIcon = (weaponName: string) => {
     'dagger': <span className="text-xl">🗡️</span>,
     'shield': <span className="text-xl">�️</span>
   };
-  
+
   // Find matching icon based on weapon name keywords
   for (const [key, icon] of Object.entries(iconMap)) {
     if (weaponName.toLowerCase().includes(key)) {
       return icon;
     }
   }
-  
+
   return <Sword className="w-6 h-6" />; // Default icon
 };
 
@@ -84,14 +86,14 @@ const getSkillIcon = (skillName: string) => {
     'herbalism': <span className="text-xl">🌿</span>,
     'beast': <span className="text-xl">�</span>
   };
-  
+
   // Find matching icon based on skill name keywords
   for (const [key, icon] of Object.entries(iconMap)) {
     if (skillName.toLowerCase().includes(key)) {
       return icon;
     }
   }
-  
+
   return <Star className="w-6 h-6" />; // Default icon
 };
 
@@ -124,14 +126,14 @@ const getToolIcon = (toolName: string) => {
     'bottle': <span className="text-xl">🍺</span>,
     'rum': <span className="text-xl">🍺</span>
   };
-  
+
   // Find matching icon based on tool name keywords
   for (const [key, icon] of Object.entries(iconMap)) {
     if (toolName.toLowerCase().includes(key)) {
       return icon;
     }
   }
-  
+
   return <Wrench className="w-6 h-6" />; // Default icon
 };
 
@@ -154,9 +156,9 @@ function CharacterCreationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const storyId = searchParams.get('storyId');
-  
+
   const { stories } = useStories();
-  
+
   const [story, setStory] = useState<Story | null>(null);
   const [step, setStep] = useState<'name' | 'weapon' | 'skill' | 'tool' | 'review'>('name');
   const [character, setCharacter] = useState<Character>({
@@ -179,7 +181,8 @@ function CharacterCreationContent() {
     id: weapon.name.toLowerCase().replace(/\s+/g, '_'),
     name: weapon.name,
     description: weapon.description,
-    icon: getWeaponIcon(weapon.name)
+    icon: getWeaponIcon(weapon.name),
+    image: weapon.image
   })) || [];
 
   // Generate skill options from story data
@@ -239,12 +242,18 @@ function CharacterCreationContent() {
     switch (step) {
       case 'weapon':
         setCharacter(prev => ({ ...prev, weapon: optionId }));
+        // Auto-advance to next step
+        setTimeout(() => setStep('skill'), 300); // Small delay for visual feedback
         break;
       case 'skill':
         setCharacter(prev => ({ ...prev, skill: optionId }));
+        // Auto-advance to next step
+        setTimeout(() => setStep('tool'), 300); // Small delay for visual feedback
         break;
       case 'tool':
         setCharacter(prev => ({ ...prev, tool: optionId }));
+        // Auto-advance to review step
+        setTimeout(() => setStep('review'), 300); // Small delay for visual feedback
         break;
     }
   };
@@ -256,11 +265,8 @@ function CharacterCreationContent() {
       setCreating(true);
       const client = isDevelopmentMode ? devGameApi : gameApi;
       const session = await client.createSession(
-        story.id, 
-        character.name,
-        character.weapon,
-        character.skill,
-        character.tool
+        story.id,
+        character.name
       );
       // Navigate to the main game interface
       router.push(`/game/play/${session.sessionId}`);
@@ -296,7 +302,7 @@ function CharacterCreationContent() {
               <h2 className="text-2xl font-bold text-white mb-2">Name Your Character</h2>
               <p className="text-gray-400">What shall we call your hero?</p>
             </div>
-            
+
             <div className="max-w-md mx-auto">
               <Label htmlFor="characterName" className="text-white text-lg mb-3 block">
                 Character Name
@@ -322,25 +328,37 @@ function CharacterCreationContent() {
               <h2 className="text-2xl font-bold text-white mb-2">Choose Your Weapon</h2>
               <p className="text-gray-400">What will be your primary tool in battle?</p>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
-              {weaponOptions.map((option) => (
-                <Card
-                  key={option.id}
-                  className={`cursor-pointer transition-all duration-200 ${
-                    character.weapon === option.id
-                      ? 'bg-purple-800/50 border-purple-500 ring-2 ring-purple-400'
-                      : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800/70'
-                  }`}
-                  onClick={() => handleSelectOption(option.id)}
-                >
-                  <CardContent className="p-6 text-center">
-                    <div className="mb-3">{option.icon}</div>
-                    <h3 className="text-white font-semibold mb-2">{option.name}</h3>
-                    <p className="text-gray-400 text-sm">{option.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
+
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 max-w-6xl mx-auto">
+              <TooltipProvider>
+                {weaponOptions.map((option) => (
+                  <Tooltip key={option.id}>
+                    <TooltipTrigger asChild>
+                      <Card
+                        className={`cursor-pointer transition-all duration-200 relative overflow-hidden h-96 ${character.weapon === option.id
+                          ? 'bg-purple-800/50 border-purple-500 ring-2 ring-purple-400'
+                          : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800/70'
+                          }`}
+                        onClick={() => handleSelectOption(option.id)}
+                        style={{
+                          backgroundImage: option.image ? `url(/${option.image})` : 'none',
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                          backgroundRepeat: 'no-repeat'
+                        }}
+                      >
+                        {/* Content */}
+                        <CardContent className="relative z-10 p-6 text-center h-full flex flex-col justify-end">
+                          <h3 className="text-white font-semibold text-lg drop-shadow-lg">{option.name}</h3>
+                        </CardContent>
+                      </Card>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">{option.description}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </TooltipProvider>
             </div>
           </div>
         );
@@ -353,25 +371,30 @@ function CharacterCreationContent() {
               <h2 className="text-2xl font-bold text-white mb-2">Choose Your Skill</h2>
               <p className="text-gray-400">What special ability do you possess?</p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
-              {skillOptions.map((option) => (
-                <Card
-                  key={option.id}
-                  className={`cursor-pointer transition-all duration-200 ${
-                    character.skill === option.id
-                      ? 'bg-purple-800/50 border-purple-500 ring-2 ring-purple-400'
-                      : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800/70'
-                  }`}
-                  onClick={() => handleSelectOption(option.id)}
-                >
-                  <CardContent className="p-6 text-center">
-                    <div className="mb-3">{option.icon}</div>
-                    <h3 className="text-white font-semibold mb-2">{option.name}</h3>
-                    <p className="text-gray-400 text-sm">{option.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
+              <TooltipProvider>
+                {skillOptions.map((option) => (
+                  <Tooltip key={option.id}>
+                    <TooltipTrigger asChild>
+                      <Card
+                        className={`cursor-pointer transition-all duration-200 h-32 ${character.skill === option.id
+                          ? 'bg-purple-800/50 border-purple-500 ring-2 ring-purple-400'
+                          : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800/70'
+                          }`}
+                        onClick={() => handleSelectOption(option.id)}
+                      >
+                        <CardContent className="p-6 text-center h-full flex flex-col justify-center">
+                          <h3 className="text-white font-semibold mb-2">{option.name}</h3>
+                        </CardContent>
+                      </Card>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">{option.description}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </TooltipProvider>
             </div>
           </div>
         );
@@ -384,25 +407,30 @@ function CharacterCreationContent() {
               <h2 className="text-2xl font-bold text-white mb-2">Choose Your Tool</h2>
               <p className="text-gray-400">What item will aid you on your journey?</p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
-              {toolOptions.map((option) => (
-                <Card
-                  key={option.id}
-                  className={`cursor-pointer transition-all duration-200 ${
-                    character.tool === option.id
-                      ? 'bg-purple-800/50 border-purple-500 ring-2 ring-purple-400'
-                      : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800/70'
-                  }`}
-                  onClick={() => handleSelectOption(option.id)}
-                >
-                  <CardContent className="p-6 text-center">
-                    <div className="mb-3">{option.icon}</div>
-                    <h3 className="text-white font-semibold mb-2">{option.name}</h3>
-                    <p className="text-gray-400 text-sm">{option.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
+              <TooltipProvider>
+                {toolOptions.map((option) => (
+                  <Tooltip key={option.id}>
+                    <TooltipTrigger asChild>
+                      <Card
+                        className={`cursor-pointer transition-all duration-200 h-32 ${character.tool === option.id
+                          ? 'bg-purple-800/50 border-purple-500 ring-2 ring-purple-400'
+                          : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800/70'
+                          }`}
+                        onClick={() => handleSelectOption(option.id)}
+                      >
+                        <CardContent className="p-6 text-center h-full flex flex-col justify-center">
+                          <h3 className="text-white font-semibold mb-2">{option.name}</h3>
+                        </CardContent>
+                      </Card>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">{option.description}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </TooltipProvider>
             </div>
           </div>
         );
@@ -417,7 +445,7 @@ function CharacterCreationContent() {
               <h2 className="text-2xl font-bold text-white mb-2">Review Your Character</h2>
               <p className="text-gray-400">Ready to begin your adventure?</p>
             </div>
-            
+
             <Card className="bg-slate-800/50 border-slate-700 max-w-md mx-auto">
               <CardHeader>
                 <CardTitle className="text-white text-center text-xl">
@@ -500,10 +528,10 @@ function CharacterCreationContent() {
             <div
               className="bg-purple-600 h-2 rounded-full transition-all duration-300"
               style={{
-                width: step === 'name' ? '20%' : 
-                       step === 'weapon' ? '40%' : 
-                       step === 'skill' ? '60%' : 
-                       step === 'tool' ? '80%' : '100%'
+                width: step === 'name' ? '20%' :
+                  step === 'weapon' ? '40%' :
+                    step === 'skill' ? '60%' :
+                      step === 'tool' ? '80%' : '100%'
               }}
             />
           </div>
@@ -517,8 +545,8 @@ function CharacterCreationContent() {
         {/* Navigation */}
         <div className="max-w-2xl mx-auto mt-12 flex justify-between">
           <div /> {/* Spacer for alignment */}
-          
-          {step !== 'review' ? (
+
+          {step === 'name' ? (
             <Button
               onClick={handleNext}
               disabled={isNextDisabled()}
@@ -527,7 +555,7 @@ function CharacterCreationContent() {
               Next
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
-          ) : (
+          ) : step === 'review' ? (
             <Button
               onClick={handleStartGame}
               disabled={creating}
@@ -536,6 +564,10 @@ function CharacterCreationContent() {
             >
               {creating ? 'Starting...' : 'Begin Adventure'}
             </Button>
+          ) : (
+            <div className="text-center">
+              <p className="text-gray-400 text-sm">Select an option to continue</p>
+            </div>
           )}
         </div>
       </div>

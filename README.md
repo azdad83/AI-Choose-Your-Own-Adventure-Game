@@ -90,7 +90,7 @@ ollama list
 ### Quick Start
 
 ```bash
-python start_game.py
+python scripts/start_game.py
 ```
 
 This startup script will:
@@ -130,19 +130,24 @@ This RAG agent uses a **completely local setup**:
 
 ### Active Game Files
 
-- `main.py` - Main game script with session management and character creation
-- `start_game.py` - Startup script that checks dependencies and launches main.py
+- `api_server.py` - FastAPI server providing REST API for the frontend
+- `main.py` - Core game logic with session management and character creation
 - `stories.json` - Story definitions and metadata for all available adventures
-- `clear_game_data.py` - Script to clear/manage saved game data
-- `clear_data.bat` - Windows batch script for easy data clearing
 - `docker-compose.yml` - Qdrant database configuration
 - `requirements.txt` - Python dependencies
 
-### Legacy Files (Old Versions)
+### Utility Scripts (`scripts/`)
 
-- `main_qdrant.py` - Previous version using Qdrant + Ollama
-- `main_backup.py` - Backup version for reference
-- `main_simple.py` - Simple version without advanced features
+- `scripts/start_game.py` - Startup script that checks dependencies and launches main.py
+- `scripts/setup.py` - Setup script for initial environment configuration
+- `scripts/clear_game_data.py` - Script to clear/manage saved game data
+- `scripts/test_ollama.py` - Test script to verify Ollama installation
+
+### Legacy Files (`scripts/legacy/`)
+
+- `scripts/legacy/main_qdrant.py` - Previous version using Qdrant + Ollama
+- `scripts/legacy/main_backup.py` - Backup version for reference
+- `scripts/legacy/main_simple.py` - Simple version without advanced features
 - `test_ollama.py` - Ollama connection testing script
 
 ## Configuration
