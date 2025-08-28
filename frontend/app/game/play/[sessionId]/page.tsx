@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   ArrowLeft,
   Send,
@@ -18,8 +19,7 @@ import {
 } from "lucide-react";
 import { useGameSession } from "@/hooks/use-game-api";
 import { GameMessage } from "@/types/game";
-
-// Utility function to parse simple markdown
+import { GameMasterOrb } from "@/components/ui/game-master-orb";// Utility function to parse simple markdown
 const parseMarkdown = (text: string) => {
   // Split by paragraphs
   const paragraphs = text.split('\n\n');
@@ -343,94 +343,107 @@ export default function GamePlayPage() {
                   <div
                     key={message.id}
                     ref={isLatestAiMessage ? latestAiMessageRef : null}
-                    className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div className={`${message.type === 'user' ? 'max-w-[80%]' : 'w-full'} ${message.type === 'user'
-                        ? 'bg-purple-600 text-white'
-                        : message.type === 'ai'
-                          ? 'bg-slate-700 text-gray-100'
-                          : 'bg-slate-600 text-gray-300'
-                      } rounded-lg p-4 shadow-lg`}>
-                      <div className="flex items-center gap-2 mb-2">
-                        {message.type === 'user' ? (
-                          <User className="w-4 h-4" />
-                        ) : (
-                          <Bot className="w-4 h-4" />
-                        )}
-                        <span className="text-sm font-medium">
-                          {message.type === 'user' ? session.character.name : 'Game Master'}
-                        </span>
-                        <span className="text-xs opacity-75 ml-auto">
-                          {formatTimestamp(message.timestamp)}
-                        </span>
-                      </div>
-                      <div className="leading-relaxed">
-                        {message.type === 'ai' ? parseMarkdown(message.content) : (
-                          <div className="whitespace-pre-wrap">{message.content}</div>
-                        )}
-                      </div>
-
-                      {/* Choice cards for AI messages */}
-                      {message.type === 'ai' && message.choices && message.choices.length > 0 && (
-                        <div className="mt-4 grid gap-3" style={{ gridTemplateColumns: `repeat(${message.choices.length}, 1fr)` }}>
-                          {message.choices.map((choice, index) => {
-                            const parsedChoice = parseChoice(choice);
-                            return (
-                              <div
-                                key={index}
-                                role="button"
-                                tabIndex={0}
-                                onClick={async (e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-
-                                  if (isSending || !session) {
-                                    console.log('Choice blocked:', { isSending, session: !!session });
-                                    return;
-                                  }
-
-                                  console.log('Choice clicked:', choice);
-                                  console.log('Current loading state:', loading);
-                                  console.log('Current isSending state:', isSending);
-
-                                  // Send only the clean header text without markdown or punctuation
-                                  const cleanAction = parsedChoice.header.replace(/\*\*/g, '').replace(/\*/g, '').replace(/:$/, '').trim();
-
-                                  try {
-                                    setIsSending(true);
-                                    console.log('About to send message:', cleanAction);
-                                    await sendMessage(cleanAction);
-                                    console.log('Message sent successfully');
-                                  } catch (error) {
-                                    console.error('Failed to send choice:', error);
-                                  } finally {
-                                    setIsSending(false);
-                                    console.log('isSending set to false');
-                                  }
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault();
-                                    e.currentTarget.click();
-                                  }
-                                }}
-                                className={`cursor-pointer transition-all duration-200 bg-slate-800 border border-slate-600 rounded-lg p-4 hover:bg-slate-700 hover:border-slate-500 ${isSending ? 'opacity-50 cursor-not-allowed' : ''
-                                  }`}
-                              >
-                                <div className="text-gray-100 font-medium text-sm mb-2">
-                                  {parsedChoice.header}
-                                </div>
-                                {parsedChoice.content && (
-                                  <div className="text-gray-300 text-xs leading-relaxed">
-                                    {parsedChoice.content}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                    {message.type === 'user' ? (
+                      // User messages keep the card styling
+                      <div className="flex justify-end">
+                        <div className="max-w-[80%] bg-purple-600 text-white rounded-lg p-4 shadow-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <User className="w-4 h-4" />
+                            <span className="text-sm font-medium">{session.character.name}</span>
+                            <span className="text-xs opacity-75 ml-auto">
+                              {formatTimestamp(message.timestamp)}
+                            </span>
+                          </div>
+                          <div className="leading-relaxed">
+                            <div className="whitespace-pre-wrap">{message.content}</div>
+                          </div>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      // AI messages with orb on the left with proper spacing
+                      <div className="flex justify-start items-start gap-4 px-6">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="mt-2 ml-16">
+                                <GameMasterOrb size="md" />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Game Master</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+
+                        <div className="flex-1 space-y-4">
+                          <div className="text-gray-100 leading-relaxed">
+                            {parseMarkdown(message.content)}
+                          </div>
+
+                          {/* Choice cards for AI messages */}
+                          {message.choices && message.choices.length > 0 && (
+                            <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${message.choices.length}, 1fr)` }}>
+                              {message.choices.map((choice, index) => {
+                                const parsedChoice = parseChoice(choice);
+                                return (
+                                  <div
+                                    key={index}
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={async (e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+
+                                      if (isSending || !session) {
+                                        console.log('Choice blocked:', { isSending, session: !!session });
+                                        return;
+                                      }
+
+                                      console.log('Choice clicked:', choice);
+                                      console.log('Current loading state:', loading);
+                                      console.log('Current isSending state:', isSending);
+
+                                      // Send only the clean header text without markdown or punctuation
+                                      const cleanAction = parsedChoice.header.replace(/\*\*/g, '').replace(/\*/g, '').replace(/:$/, '').trim();
+
+                                      try {
+                                        setIsSending(true);
+                                        console.log('About to send message:', cleanAction);
+                                        await sendMessage(cleanAction);
+                                        console.log('Message sent successfully');
+                                      } catch (error) {
+                                        console.error('Failed to send choice:', error);
+                                      } finally {
+                                        setIsSending(false);
+                                        console.log('isSending set to false');
+                                      }
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        e.currentTarget.click();
+                                      }
+                                    }}
+                                    className={`cursor-pointer transition-all duration-200 bg-slate-800 border border-slate-600 rounded-lg p-4 hover:bg-slate-700 hover:border-slate-500 ${isSending ? 'opacity-50 cursor-not-allowed' : ''
+                                      }`}
+                                  >
+                                    <div className="text-gray-100 font-medium text-sm mb-2">
+                                      {parsedChoice.header}
+                                    </div>
+                                    {parsedChoice.content && (
+                                      <div className="text-gray-300 text-xs leading-relaxed">
+                                        {parsedChoice.content}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               }) : (
@@ -440,16 +453,23 @@ export default function GamePlayPage() {
               )}
 
               {isSending && (
-                <div className="flex justify-start">
-                  <div className="bg-slate-700 text-gray-100 rounded-lg p-4 shadow-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Bot className="w-4 h-4" />
-                      <span className="text-sm font-medium">Game Master</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="animate-bounce w-2 h-2 bg-gray-400 rounded-full"></div>
-                      <div className="animate-bounce w-2 h-2 bg-gray-400 rounded-full delay-100"></div>
-                      <div className="animate-bounce w-2 h-2 bg-gray-400 rounded-full delay-200"></div>
+                <div className="flex justify-between items-start px-6">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="mt-2 ml-16">
+                          <GameMasterOrb size="md" isThinking={true} />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Game Master</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <div className="flex-1 flex justify-end">
+                    <div className="text-gray-400 text-sm mt-2">
+                      Game Master is thinking
                     </div>
                   </div>
                 </div>
