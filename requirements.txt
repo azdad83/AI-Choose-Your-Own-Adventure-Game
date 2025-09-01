@@ -1,12 +1,17 @@
 # Local Choose Your Own Adventure Game Dependencies
-# Using Ollama (local LLM) + Qdrant (local vector database)
+# Supports both Ollama (local LLM) and OpenAI
 
 # Core LangChain components
 langchain>=0.1.0
 langchain-core>=0.1.0
 
-# Ollama integration
-langchain-ollama>=0.1.0
+# AI Provider integrations
+langchain-ollama>=0.1.0       # For Ollama integration
+langchain-openai>=0.1.0       # For OpenAI integration
+openai>=1.0.0                 # OpenAI SDK
+
+# Environment configuration
+python-dotenv>=1.0.0          # Load environment variables
 
 # Qdrant vector database
 qdrant-client>=1.7.0

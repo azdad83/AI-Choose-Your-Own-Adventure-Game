@@ -53,6 +53,17 @@ export interface StoryListResponse {
   stories: import('./game').Story[];
 }
 
+// Connection status types
+export interface ConnectionStatus {
+  provider: 'ollama' | 'openai';
+  model: string;
+  base_url: string;
+  connected: boolean;
+  status: 'connected' | 'disconnected' | 'error';
+  error?: string;
+  timestamp: string;
+}
+
 // Error types
 export interface ApiError {
   code: string;

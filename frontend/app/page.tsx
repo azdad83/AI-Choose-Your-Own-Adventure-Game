@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sword, Users, BookOpen, Play, RotateCcw, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { ConnectionStatusDetailed } from "@/components/ui/connection-status";
 
 export default function HomePage() {
   const router = useRouter();
@@ -50,10 +51,10 @@ export default function HomePage() {
               </span>
             </h1>
             <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              Embark on dynamic storytelling adventures powered by AI. Create unique characters, 
+              Embark on dynamic storytelling adventures powered by AI. Create unique characters,
               make meaningful choices, and shape your own epic tales.
             </p>
-            
+
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Button
@@ -64,7 +65,7 @@ export default function HomePage() {
                 <Play className="w-5 h-5 mr-2" />
                 Start New Adventure
               </Button>
-              
+
               <Button
                 onClick={handleContinueGame}
                 variant="outline"
@@ -79,6 +80,13 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* AI Connection Status */}
+      <div className="container mx-auto px-4 py-6">
+        <div className="max-w-2xl mx-auto">
+          <ConnectionStatusDetailed />
+        </div>
+      </div>
+
       {/* Stats Section */}
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
@@ -89,7 +97,7 @@ export default function HomePage() {
               <div className="text-gray-400">Stories Available</div>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-slate-800/50 border-slate-700">
             <CardContent className="p-6 text-center">
               <Users className="w-8 h-8 text-green-400 mx-auto mb-2" />
@@ -97,7 +105,7 @@ export default function HomePage() {
               <div className="text-gray-400">Your Adventures</div>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-slate-800/50 border-slate-700">
             <CardContent className="p-6 text-center">
               <Sword className="w-8 h-8 text-red-400 mx-auto mb-2" />
