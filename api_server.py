@@ -302,7 +302,8 @@ async def create_session(request: CreateSessionRequest):
                 qdrant_client=qdrant_client,
                 embeddings_model=embeddings,
                 collection_name="chat_histories"
-            )
+            ),
+            "messages_with_choices": []  # Store messages with their original choices
         }
         
         # Store in memory
@@ -510,33 +511,49 @@ async def get_messages(session_id: str):
             raise HTTPException(status_code=404, detail="Session not found")
         
         session_data = active_sessions[session_id]
-        chat_history = session_data["chat_history"]
+        
+        # Use stored messages with choices instead of re-parsing from chat history
+        stored_messages = session_data.get("messages_with_choices", [])
         
         messages = []
-        for msg in chat_history.messages:
-            if hasattr(msg, 'content'):
-                message_type = 'ai' if isinstance(msg, AIMessage) else 'user'
-                
-                if message_type == 'ai':
-                    # Parse choices from AI messages
-                    content_without_choices, choices = parse_choices_from_response(msg.content)
-                    message = GameMessage(
-                        id=str(uuid.uuid4()),
-                        type=message_type,
-                        content=content_without_choices,
-                        timestamp=datetime.now().isoformat(),
-                        choices=choices if choices else None,
-                        turnNumber=session_data["currentTurn"]
-                    )
-                else:
-                    message = GameMessage(
-                        id=str(uuid.uuid4()),
-                        type=message_type,
-                        content=msg.content,
-                        timestamp=datetime.now().isoformat(),
-                        turnNumber=session_data["currentTurn"]
-                    )
-                messages.append(message)
+        for msg_data in stored_messages:
+            message = GameMessage(
+                id=msg_data["id"],
+                type=msg_data["type"],
+                content=msg_data["content"],
+                timestamp=msg_data["timestamp"],
+                choices=msg_data["choices"],
+                turnNumber=msg_data["turnNumber"]
+            )
+            messages.append(message)
+        
+        # If no stored messages, fall back to parsing from chat history (for backwards compatibility)
+        if not messages:
+            chat_history = session_data["chat_history"]
+            for msg in chat_history.messages:
+                if hasattr(msg, 'content'):
+                    message_type = 'ai' if isinstance(msg, AIMessage) else 'user'
+                    
+                    if message_type == 'ai':
+                        # Parse choices from AI messages
+                        content_without_choices, choices = parse_choices_from_response(msg.content)
+                        message = GameMessage(
+                            id=str(uuid.uuid4()),
+                            type=message_type,
+                            content=content_without_choices,
+                            timestamp=datetime.now().isoformat(),
+                            choices=choices if choices else None,
+                            turnNumber=session_data["currentTurn"]
+                        )
+                    else:
+                        message = GameMessage(
+                            id=str(uuid.uuid4()),
+                            type=message_type,
+                            content=msg.content,
+                            timestamp=datetime.now().isoformat(),
+                            turnNumber=session_data["currentTurn"]
+                        )
+                    messages.append(message)
         
         # If still no messages, add enhanced fallback welcome message
         if not messages:
@@ -611,6 +628,17 @@ async def send_message(request: SendMessageRequest):
         
         # Add user message to history
         chat_history.add_message(HumanMessage(content=request.message))
+        
+        # Store the user message in session data
+        user_message_id = str(uuid.uuid4())
+        session_data["messages_with_choices"].append({
+            "id": user_message_id,
+            "type": "user",
+            "content": request.message,
+            "timestamp": datetime.now().isoformat(),
+            "choices": None,
+            "turnNumber": session_data["currentTurn"]
+        })
         
         # Create a rich, immersive prompt for the AI with JSON format requirement
         is_first_message = len([msg for msg in chat_history.messages if isinstance(msg, HumanMessage)]) == 1
@@ -796,6 +824,16 @@ Respond ONLY with valid JSON in the exact format specified above.
             choices=choices if choices else None,
             turnNumber=session_data["currentTurn"]
         )
+        
+        # Store the AI message with choices in session data for proper retrieval
+        session_data["messages_with_choices"].append({
+            "id": ai_message.id,
+            "type": ai_message.type,
+            "content": ai_message.content,
+            "timestamp": ai_message.timestamp,
+            "choices": ai_message.choices,
+            "turnNumber": ai_message.turnNumber
+        })
         
         return SendMessageResponse(message=ai_message)
         

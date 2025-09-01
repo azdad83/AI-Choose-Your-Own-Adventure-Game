@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot } from "lucide-react";
+import Image from "next/image";
 
 interface GameMasterOrbProps {
     isThinking?: boolean;
@@ -18,12 +18,6 @@ export function GameMasterOrb({ isThinking = false, size = 'md' }: GameMasterOrb
         sm: 'w-16 h-16',
         md: 'w-24 h-24',
         lg: 'w-32 h-32'
-    };
-
-    const iconSizeClasses = {
-        sm: 'w-4 h-4',
-        md: 'w-6 h-6',
-        lg: 'w-8 h-8'
     };
 
     return (
@@ -83,8 +77,13 @@ export function GameMasterOrb({ isThinking = false, size = 'md' }: GameMasterOrb
                         : '0 0 10px rgba(147, 51, 234, 0.4), inset 0 1px 3px rgba(255, 255, 255, 0.2)',
                 }}
             >
-                <Bot
-                    className={`${iconSizeClasses[size]} text-white drop-shadow-sm`}
+                <Image
+                    src="/game_master.svg"
+                    alt="Game Master"
+                    width={size === 'sm' ? 19 : size === 'md' ? 29 : 38}
+                    height={size === 'sm' ? 19 : size === 'md' ? 29 : 38}
+                    className="drop-shadow-sm"
+                    style={{ filter: 'brightness(0) invert(1)' }} // Makes the icon white
                 />
             </div>
         </div>

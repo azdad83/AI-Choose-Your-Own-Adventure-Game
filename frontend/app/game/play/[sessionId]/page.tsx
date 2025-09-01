@@ -167,8 +167,18 @@ export default function GamePlayPage() {
   const [isSending, setIsSending] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [currentChoices, setCurrentChoices] = useState<string[]>([]);
+  const [showFirstMessage, setShowFirstMessage] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const latestAiMessageRef = useRef<HTMLDivElement>(null);
+
+  // Alternating message effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setShowFirstMessage(prev => !prev);
+    }, 3000); // Switch every 3 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   const scrollToLatestMessage = useCallback(() => {
     // If there are messages, try to scroll to the latest AI message
@@ -301,7 +311,7 @@ export default function GamePlayPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col overflow-hidden">
       {/* Auto-hiding Header */}
       <div className="fixed top-0 left-0 right-0 z-50 group">
         {/* Invisible hover trigger area */}
@@ -365,13 +375,13 @@ export default function GamePlayPage() {
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="pt-16 min-h-screen flex flex-col">
-        <div className="container mx-auto px-4 flex-1 flex flex-col">
-          {/* Messages Container - Add bottom padding for sticky action bar */}
-          <div className="flex-1 pb-40 mb-8">
-            <ScrollArea className="h-[calc(100vh-240px)]">
-              <div className="space-y-4 pr-4 pb-8">
+      {/* Main Content Area - Flex container for chat and action bar */}
+      <div className="flex-1 flex flex-col pt-16 min-h-0">
+        <div className="container mx-auto px-4 flex-1 flex flex-col min-h-0">
+          {/* Messages Container - Takes all available space above action bar */}
+          <div className="flex-1 min-h-0">
+            <ScrollArea className="h-full">
+              <div className="space-y-4 pr-4 px-2 pb-6">
                 {messages && messages.length > 0 ? messages
                   .filter(message =>
                     message.content !== 'Begin the adventure and set the scene' &&
@@ -434,13 +444,22 @@ export default function GamePlayPage() {
 
           {/* Hidden - Text input removed in favor of choice grid */}
         </div>
-      </div>
 
-      {/* Sticky Action Bar - Fixed to bottom of viewport */}
-      {currentChoices.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 p-3 bg-slate-900/95 backdrop-blur-sm border-t border-slate-700">
-          <div className="container mx-auto">
-            <div className="grid grid-cols-2 gap-3 max-w-4xl mx-auto">
+        {/* Action Bar - Part of the main flex container, not fixed positioned */}
+        {currentChoices.length > 0 && (
+          <div className="flex-shrink-0 p-4 bg-slate-900/95 backdrop-blur-sm border-t border-slate-700">
+            {/* Status text above buttons */}
+            <div className="text-center mb-3">
+              {isSending ? (
+                <div className="text-gray-400 text-sm">Game Master is thinking...</div>
+              ) : (
+                <div className="text-gray-400 text-sm transition-opacity duration-500">
+                  {showFirstMessage ? "Choose an option" : "Mouse over to reveal more info"}
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 max-w-4xl mx-auto">
               {currentChoices.slice(0, 4).map((choice, index) => {
                 const parsedChoice = parseChoice(choice);
                 return (
@@ -457,11 +476,11 @@ export default function GamePlayPage() {
                               handleChoiceSelect(choice);
                             }
                           }}
-                          className={`cursor-pointer transition-all duration-200 border-2 bg-gradient-to-r from-slate-700 to-slate-600 border-slate-500 hover:from-purple-600 hover:to-purple-500 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/25 min-h-[80px] ${isSending ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
+                          className={`cursor-pointer transition-all duration-200 border-2 bg-gradient-to-r from-slate-700 to-slate-600 border-slate-500 hover:from-purple-600 hover:to-purple-500 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/25 min-h-[60px] ${isSending ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
                             }`}
                           style={{ pointerEvents: isSending ? 'none' : 'auto' }}
                         >
-                          <CardContent className="p-3 h-full flex items-center justify-center">
+                          <CardContent className="p-2 h-full flex items-center justify-center">
                             <div className="text-white font-semibold text-sm text-center">
                               {parsedChoice.header}
                             </div>
@@ -480,18 +499,12 @@ export default function GamePlayPage() {
 
               {/* Fill empty slots if less than 4 choices */}
               {currentChoices.length < 4 && Array.from({ length: 4 - currentChoices.length }).map((_, index) => (
-                <div key={`empty-${index}`} className="min-h-[80px]" />
+                <div key={`empty-${index}`} className="min-h-[60px]" />
               ))}
             </div>
-
-            {isSending && (
-              <div className="text-center mt-3">
-                <div className="text-gray-400 text-sm">Game Master is thinking...</div>
-              </div>
-            )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
