@@ -386,19 +386,14 @@ export default function GamePlayPage() {
                         ref={isLatestAiMessage ? latestAiMessageRef : null}
                       >
                         {message.type === 'user' ? (
-                          // User messages keep the card styling
-                          <div className="flex justify-end">
-                            <div className="max-w-[80%] bg-purple-600 text-white rounded-lg p-4 shadow-lg">
-                              <div className="flex items-center gap-2 mb-2">
-                                <User className="w-4 h-4" />
-                                <span className="text-sm font-medium">{session.character.name}</span>
-                                <span className="text-xs opacity-75 ml-auto">
-                                  {formatTimestamp(message.timestamp)}
-                                </span>
+                          // Ornamental separator line instead of user message card
+                          <div className="flex justify-center py-6">
+                            <div className="flex items-center justify-center w-1/2 max-w-md">
+                              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-100 to-transparent opacity-30"></div>
+                              <div className="mx-4">
+                                <div className="w-2 h-2 bg-gray-100 rounded-full opacity-40"></div>
                               </div>
-                              <div className="leading-relaxed">
-                                <div className="whitespace-pre-wrap">{message.content}</div>
-                              </div>
+                              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-100 to-transparent opacity-30"></div>
                             </div>
                           </div>
                         ) : (
