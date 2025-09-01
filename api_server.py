@@ -612,7 +612,7 @@ async def send_message(request: SendMessageRequest):
         # Add user message to history
         chat_history.add_message(HumanMessage(content=request.message))
         
-        # Create a rich, immersive prompt for the AI
+        # Create a rich, immersive prompt for the AI with JSON format requirement
         is_first_message = len([msg for msg in chat_history.messages if isinstance(msg, HumanMessage)]) == 1
         
         if is_first_message:
@@ -636,12 +636,22 @@ STORYTELLING INSTRUCTIONS:
 3. Create an immersive scenario that reflects the {story_data['genre']} genre and {story_data['setting']} setting
 4. The opening should be 3-4 paragraphs long and highly descriptive
 5. End with the character facing their first meaningful decision
-6. Provide 4 distinct, meaningful choices that reflect different approaches (combat, stealth, social, creative)
-7. Make each choice showcase different aspects of the character's abilities
+6. Provide exactly 4 distinct, meaningful choices that reflect different approaches (combat, stealth, social, creative)
+
+CRITICAL: You MUST respond in the following JSON format:
+{{
+  "story": "The main story text here",
+  "choices": [
+    {{"name": "Action Name", "description": "Detailed description of what this action entails"}},
+    {{"name": "Action Name", "description": "Detailed description of what this action entails"}},
+    {{"name": "Action Name", "description": "Detailed description of what this action entails"}},
+    {{"name": "Action Name", "description": "Detailed description of what this action entails"}}
+  ]
+}}
 
 PLAYER'S OPENING ACTION: {request.message}
 
-Now begin the adventure with a compelling, detailed opening that draws the player into the world of "{story_data['name']}".
+Respond ONLY with valid JSON in the exact format specified above.
 """
         else:
             # Continuing story - shorter context
@@ -654,8 +664,20 @@ The player is {character_data['name']} (equipped with {character_data['weapon']}
 Player's action: {request.message}
 
 Continue the story based on the player's action. Be engaging, descriptive, and true to the {story_data['genre']} genre.
-Provide 3-4 numbered choices for what the player can do next.
 Keep responses to 2-3 paragraphs.
+
+CRITICAL: You MUST respond in the following JSON format:
+{{
+  "story": "The main story text here",
+  "choices": [
+    {{"name": "Action Name", "description": "Detailed description of what this action entails"}},
+    {{"name": "Action Name", "description": "Detailed description of what this action entails"}},
+    {{"name": "Action Name", "description": "Detailed description of what this action entails"}},
+    {{"name": "Action Name", "description": "Detailed description of what this action entails"}}
+  ]
+}}
+
+Respond ONLY with valid JSON in the exact format specified above.
 """
         
         print(f"DEBUG: Prompt length: {len(story_context)}")
@@ -664,33 +686,112 @@ Keep responses to 2-3 paragraphs.
         # Get AI response
         response = llm.invoke(story_context)
         print(f"DEBUG: AI response type: {type(response)}")
-        print(f"DEBUG: AI response attributes: {dir(response)[:10]}")  # First 10 attributes
         
         # Extract content from AIMessage if needed
         if hasattr(response, 'content'):
             response_content = response.content
-            print(f"DEBUG: Raw content type: {type(response_content)}")
-            print(f"DEBUG: Raw content repr: {repr(response_content)[:100]}")
         else:
             response_content = str(response)
         
         print(f"DEBUG: Response content length: {len(response_content) if response_content else 0}")
+        print(f"DEBUG: Raw response: {response_content[:500]}")
         
-        # Add AI response to history
-        chat_history.add_message(AIMessage(content=response_content))
+        # Parse JSON response
+        try:
+            # Clean up the response content first
+            response_content = response_content.strip()
+            
+            # Try to extract JSON from response if it's wrapped in markdown code blocks
+            import re
+            json_match = re.search(r'```(?:json)?\s*\n?({.*?})\s*\n?```', response_content, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1)
+                print(f"DEBUG: Found JSON in code blocks: {json_str[:200]}...")
+            else:
+                # Try to find JSON object directly - look for balanced braces
+                brace_count = 0
+                start_idx = -1
+                end_idx = -1
+                
+                for i, char in enumerate(response_content):
+                    if char == '{':
+                        if brace_count == 0:
+                            start_idx = i
+                        brace_count += 1
+                    elif char == '}':
+                        brace_count -= 1
+                        if brace_count == 0 and start_idx != -1:
+                            end_idx = i + 1
+                            break
+                
+                if start_idx != -1 and end_idx != -1:
+                    json_str = response_content[start_idx:end_idx]
+                    print(f"DEBUG: Found JSON object: {json_str[:200]}...")
+                else:
+                    print(f"DEBUG: No JSON found, using fallback parsing")
+                    # Fallback to old parsing method
+                    story_content, choices = parse_choices_from_response(response_content)
+                    print(f"DEBUG: Fallback - story: {len(story_content)} chars, choices: {len(choices)}")
+                    
+                    # Add AI response to history (store the story content only)
+                    chat_history.add_message(AIMessage(content=story_content))
+                    
+                    # Update session
+                    session_data["currentTurn"] += 1
+                    session_data["lastUpdated"] = datetime.now().isoformat()
+                    
+                    # Create AI message
+                    ai_message = GameMessage(
+                        id=str(uuid.uuid4()),
+                        type='ai',
+                        content=story_content,
+                        timestamp=datetime.now().isoformat(),
+                        choices=choices if choices else None,
+                        turnNumber=session_data["currentTurn"]
+                    )
+                    
+                    return SendMessageResponse(message=ai_message)
+            
+            # Parse the JSON
+            print(f"DEBUG: Attempting to parse JSON: {json_str[:100]}...")
+            parsed_response = json.loads(json_str)
+            
+            story_content = parsed_response.get('story', '')
+            choices_data = parsed_response.get('choices', [])
+            
+            print(f"DEBUG: Successfully parsed JSON - story: {len(story_content)} chars, choices: {len(choices_data)}")
+            
+            # Format choices as expected by frontend
+            choices = []
+            for choice_obj in choices_data:
+                if isinstance(choice_obj, dict) and 'name' in choice_obj and 'description' in choice_obj:
+                    choices.append(f"**{choice_obj['name']}** {choice_obj['description']}")
+                else:
+                    # Fallback if structure is unexpected
+                    choices.append(str(choice_obj))
+            
+            print(f"DEBUG: Formatted choices: {[c[:50] + '...' if len(c) > 50 else c for c in choices]}")
+            
+        except (json.JSONDecodeError, AttributeError, IndexError) as e:
+            print(f"DEBUG: JSON parsing failed: {e}")
+            print(f"DEBUG: Raw response content: {response_content[:500]}")
+            print(f"DEBUG: Falling back to old parsing method")
+            # Fallback to old parsing method if JSON parsing fails
+            story_content, choices = parse_choices_from_response(response_content)
+            print(f"DEBUG: Fallback result - story: {len(story_content)} chars, choices: {len(choices)}")
+        
+        # Add AI response to history (store the story content only)
+        chat_history.add_message(AIMessage(content=story_content))
         
         # Update session
         session_data["currentTurn"] += 1
         session_data["lastUpdated"] = datetime.now().isoformat()
         
-        # Parse response for choices and content
-        content, choices = parse_choices_from_response(response_content)
-        
         # Create AI message
         ai_message = GameMessage(
             id=str(uuid.uuid4()),
             type='ai',
-            content=content,
+            content=story_content,
             timestamp=datetime.now().isoformat(),
             choices=choices if choices else None,
             turnNumber=session_data["currentTurn"]

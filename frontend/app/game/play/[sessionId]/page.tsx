@@ -75,16 +75,47 @@ const parseChoice = (choice: string) => {
   // Remove leading/trailing whitespace
   const trimmed = choice.trim();
 
-  // Look for bold text at the beginning (either at start or after **)
-  const boldMatch = trimmed.match(/^\*\*(.*?)\*\*\s*(.*)$/);
-  if (boldMatch) {
+  // Check if this is already in the format from JSON parsing: **Action Name** Description
+  const jsonFormatMatch = trimmed.match(/^\*\*(.*?)\*\*\s*(.*)$/);
+  if (jsonFormatMatch) {
     return {
-      header: boldMatch[1].trim(),
-      content: boldMatch[2].trim()
+      header: jsonFormatMatch[1].trim(),
+      content: jsonFormatMatch[2].trim()
     };
   }
 
-  // Look for bold text anywhere in the string
+  // Try to parse as raw JSON if it looks like it (for debugging)
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (parsed.name && parsed.description) {
+      return {
+        header: parsed.name,
+        content: parsed.description
+      };
+    }
+  } catch (e) {
+    // Not JSON, continue with other parsing methods
+  }
+
+  // Pattern 2: Action Name: Description
+  const colonMatch = trimmed.match(/^([^:]+):\s*(.*)$/);
+  if (colonMatch) {
+    return {
+      header: colonMatch[1].trim(),
+      content: colonMatch[2].trim()
+    };
+  }
+
+  // Pattern 3: Action Name - Description
+  const dashMatch = trimmed.match(/^([^-]+)-\s*(.*)$/);
+  if (dashMatch) {
+    return {
+      header: dashMatch[1].trim(),
+      content: dashMatch[2].trim()
+    };
+  }
+
+  // Pattern 4: Look for bold text anywhere in the string
   const anyBoldMatch = trimmed.match(/^(.*?)\*\*(.*?)\*\*(.*)$/);
   if (anyBoldMatch) {
     const beforeBold = anyBoldMatch[1].trim();
@@ -97,16 +128,30 @@ const parseChoice = (choice: string) => {
     };
   }
 
-  // Try to split on first period or sentence
+  // Pattern 5: Try to split on first period if it creates reasonable parts
   const sentences = trimmed.split(/\.\s+/);
-  if (sentences.length > 1) {
+  if (sentences.length > 1 && sentences[0].length > 0 && sentences[0].length < 50) {
     return {
-      header: sentences[0] + '.',
-      content: sentences.slice(1).join('. ')
+      header: sentences[0].trim(),
+      content: sentences.slice(1).join('. ').trim()
     };
   }
 
-  // Fallback: treat entire text as header
+  // Fallback: If choice is too long, try to extract first meaningful phrase
+  if (trimmed.length > 50) {
+    const words = trimmed.split(' ');
+    const firstPart = words.slice(0, 4).join(' '); // Take first 4 words as header
+    const secondPart = words.slice(4).join(' '); // Rest as content
+
+    if (secondPart.length > 0) {
+      return {
+        header: firstPart,
+        content: secondPart
+      };
+    }
+  }
+
+  // Final fallback: treat entire text as header
   return {
     header: trimmed,
     content: ''
@@ -130,15 +175,22 @@ export default function GamePlayPage() {
     if (messages && messages.length > 0) {
       const latestMessage = messages[messages.length - 1];
       if (latestMessage.type === 'ai' && latestAiMessageRef.current) {
-        // Scroll to the top of the latest AI message
-        latestAiMessageRef.current.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-          inline: "nearest"
-        });
+        // Scroll to the top of the latest AI message with offset for action bar
+        setTimeout(() => {
+          latestAiMessageRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+            inline: "nearest"
+          });
+        }, 100);
       } else {
-        // Fall back to scrolling to bottom for user messages
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        // Fall back to scrolling to bottom for user messages, accounting for action bar
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "end"
+          });
+        }, 100);
       }
     }
   }, [messages]);
@@ -154,15 +206,13 @@ export default function GamePlayPage() {
       const initializeStory = async () => {
         try {
           setIsInitializing(true);
-          await sendMessage("Begin the adventure and set the scene");
+          await sendMessage("Begin the adventure and set the scene. Respond in JSON format with story content and exactly 4 action choices formatted as name and description pairs.");
         } catch (error) {
           console.error('Failed to initialize story:', error);
         } finally {
           setIsInitializing(false);
         }
-      };
-
-      initializeStory();
+      }; initializeStory();
     }
   }, [session, messages, loading, isSending, isInitializing, sendMessage]);
 
@@ -316,63 +366,67 @@ export default function GamePlayPage() {
       </div>
 
       {/* Main Content Area */}
-      <div className="pt-16 pb-8 min-h-screen flex flex-col">
+      <div className="pt-16 min-h-screen flex flex-col">
         <div className="container mx-auto px-4 flex-1 flex flex-col">
-          {/* Messages Container */}
-          <div className="flex-1 mb-6">
-            <ScrollArea className="h-[calc(100vh-420px)]">
-              <div className="space-y-4 pr-4">
+          {/* Messages Container - Add bottom padding for sticky action bar */}
+          <div className="flex-1 pb-40 mb-8">
+            <ScrollArea className="h-[calc(100vh-240px)]">
+              <div className="space-y-4 pr-4 pb-8">
                 {messages && messages.length > 0 ? messages
-                  .filter(message => message.content !== 'Begin the adventure and set the scene')
+                  .filter(message =>
+                    message.content !== 'Begin the adventure and set the scene' &&
+                    message.content !== 'Begin the adventure and set the scene. Respond in JSON format with story content and exactly 4 action choices formatted as name and description pairs.' &&
+                    !message.content.startsWith('```json')
+                  )
                   .map((message: GameMessage, index: number) => {
-                  const isLatestAiMessage = message.type === 'ai' && index === messages.length - 1;
-                  return (
-                    <div
-                      key={message.id}
-                      ref={isLatestAiMessage ? latestAiMessageRef : null}
-                    >
-                      {message.type === 'user' ? (
-                        // User messages keep the card styling
-                        <div className="flex justify-end">
-                          <div className="max-w-[80%] bg-purple-600 text-white rounded-lg p-4 shadow-lg">
-                            <div className="flex items-center gap-2 mb-2">
-                              <User className="w-4 h-4" />
-                              <span className="text-sm font-medium">{session.character.name}</span>
-                              <span className="text-xs opacity-75 ml-auto">
-                                {formatTimestamp(message.timestamp)}
-                              </span>
-                            </div>
-                            <div className="leading-relaxed">
-                              <div className="whitespace-pre-wrap">{message.content}</div>
+                    const isLatestAiMessage = message.type === 'ai' && index === messages.length - 1;
+                    return (
+                      <div
+                        key={message.id}
+                        ref={isLatestAiMessage ? latestAiMessageRef : null}
+                      >
+                        {message.type === 'user' ? (
+                          // User messages keep the card styling
+                          <div className="flex justify-end">
+                            <div className="max-w-[80%] bg-purple-600 text-white rounded-lg p-4 shadow-lg">
+                              <div className="flex items-center gap-2 mb-2">
+                                <User className="w-4 h-4" />
+                                <span className="text-sm font-medium">{session.character.name}</span>
+                                <span className="text-xs opacity-75 ml-auto">
+                                  {formatTimestamp(message.timestamp)}
+                                </span>
+                              </div>
+                              <div className="leading-relaxed">
+                                <div className="whitespace-pre-wrap">{message.content}</div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ) : (
-                        // AI messages with orb on the left with proper spacing
-                        <div className="flex justify-start items-start gap-4 px-6">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="mt-2 ml-16">
-                                  <GameMasterOrb size="md" />
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Game Master</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                        ) : (
+                          // AI messages with orb on the left with proper spacing
+                          <div className="flex justify-start items-start gap-4 px-6">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="mt-2 ml-16">
+                                    <GameMasterOrb size="md" />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Game Master</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
 
-                          <div className="flex-1 space-y-4">
-                            <div className="text-gray-100 leading-relaxed">
-                              {parseMarkdown(message.content)}
+                            <div className="flex-1 space-y-4">
+                              <div className="text-gray-100 leading-relaxed">
+                                {parseMarkdown(message.content)}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                }) : (
+                        )}
+                      </div>
+                    );
+                  }) : (
                   <div className="text-center text-gray-400 py-8">
                     <p>No messages yet. Start your adventure!</p>
                   </div>
@@ -384,59 +438,65 @@ export default function GamePlayPage() {
           </div>
 
           {/* Hidden - Text input removed in favor of choice grid */}
-
-          {/* Choice Grid - 2x2 Layout at Bottom */}
-          {currentChoices.length > 0 && (
-            <div className="p-4 bg-slate-900/30 border-t border-slate-700">
-              <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
-                {currentChoices.slice(0, 4).map((choice, index) => {
-                  const parsedChoice = parseChoice(choice);
-                  return (
-                    <Card
-                      key={index}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => handleChoiceSelect(choice)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleChoiceSelect(choice);
-                        }
-                      }}
-                      className={`cursor-pointer transition-all duration-200 border-2 bg-gradient-to-r from-slate-700 to-slate-600 border-slate-500 hover:from-purple-600 hover:to-purple-500 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/25 min-h-[120px] ${
-                        isSending ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
-                      }`}
-                      style={{ pointerEvents: isSending ? 'none' : 'auto' }}
-                    >
-                      <CardContent className="p-4 h-full flex flex-col justify-center">
-                        <div className="text-white font-semibold text-sm mb-2 text-center">
-                          {parsedChoice.header}
-                        </div>
-                        {parsedChoice.content && (
-                          <div className="text-gray-300 text-xs leading-relaxed text-center">
-                            {parsedChoice.content}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-                
-                {/* Fill empty slots if less than 4 choices */}
-                {currentChoices.length < 4 && Array.from({ length: 4 - currentChoices.length }).map((_, index) => (
-                  <div key={`empty-${index}`} className="min-h-[120px]" />
-                ))}
-              </div>
-              
-              {isSending && (
-                <div className="text-center mt-4">
-                  <div className="text-gray-400 text-sm">Game Master is thinking...</div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Sticky Action Bar - Fixed to bottom of viewport */}
+      {currentChoices.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 p-3 bg-slate-900/95 backdrop-blur-sm border-t border-slate-700">
+          <div className="container mx-auto">
+            <div className="grid grid-cols-2 gap-3 max-w-4xl mx-auto">
+              {currentChoices.slice(0, 4).map((choice, index) => {
+                const parsedChoice = parseChoice(choice);
+                return (
+                  <TooltipProvider key={index}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Card
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => handleChoiceSelect(choice)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleChoiceSelect(choice);
+                            }
+                          }}
+                          className={`cursor-pointer transition-all duration-200 border-2 bg-gradient-to-r from-slate-700 to-slate-600 border-slate-500 hover:from-purple-600 hover:to-purple-500 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/25 min-h-[80px] ${isSending ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
+                            }`}
+                          style={{ pointerEvents: isSending ? 'none' : 'auto' }}
+                        >
+                          <CardContent className="p-3 h-full flex items-center justify-center">
+                            <div className="text-white font-semibold text-sm text-center">
+                              {parsedChoice.header}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </TooltipTrigger>
+                      {parsedChoice.content && (
+                        <TooltipContent side="top" className="max-w-xs p-3 bg-slate-800 text-white border-slate-600">
+                          <p className="text-sm leading-relaxed">{parsedChoice.content}</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+                );
+              })}
+
+              {/* Fill empty slots if less than 4 choices */}
+              {currentChoices.length < 4 && Array.from({ length: 4 - currentChoices.length }).map((_, index) => (
+                <div key={`empty-${index}`} className="min-h-[80px]" />
+              ))}
+            </div>
+
+            {isSending && (
+              <div className="text-center mt-3">
+                <div className="text-gray-400 text-sm">Game Master is thinking...</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
