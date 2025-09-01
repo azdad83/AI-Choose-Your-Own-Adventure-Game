@@ -16,9 +16,8 @@ from datetime import datetime
 # Import the existing game logic and classes
 from main import StoryManager, QdrantChatMessageHistory
 from qdrant_client import QdrantClient
-from langchain_ollama import OllamaLLM
 from langchain_core.messages import HumanMessage, AIMessage
-from sentence_transformers import SentenceTransformer
+from ai_config import get_llm, get_embeddings, test_ai_connection, get_provider_info, config
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -118,10 +117,9 @@ llm = None
 embeddings = None
 active_sessions: Dict[str, Dict] = {}  # In-memory session storage
 
-# Configuration constants
-QDRANT_HOST = "localhost"
-QDRANT_PORT = 6333
-OLLAMA_MODEL = "gemma3:12b"
+# Configuration from ai_config
+QDRANT_HOST = config.qdrant_host
+QDRANT_PORT = config.qdrant_port
 
 def initialize_components():
     """Initialize the game components."""
@@ -137,13 +135,30 @@ def initialize_components():
     print("Loading story definitions...")
     story_manager = StoryManager("stories.json")
     
-    # Initialize Ollama
-    print(f"Initializing Ollama with model: {OLLAMA_MODEL}")
-    llm = OllamaLLM(model=OLLAMA_MODEL, base_url="http://localhost:11434")
+    # Initialize AI Language Model
+    print("Initializing AI language model...")
+    try:
+        llm = get_llm()
+        print("✓ AI language model initialized")
+    except Exception as e:
+        print(f"✗ Failed to initialize AI language model: {e}")
+        raise
+    
+    # Test AI connection
+    if not test_ai_connection():
+        provider_info = get_provider_info()
+        error_msg = f"Failed to connect to {provider_info['provider']} AI provider"
+        print(f"✗ {error_msg}")
+        raise Exception(error_msg)
     
     # Initialize embeddings
     print("Loading embedding model...")
-    embeddings = SentenceTransformer('all-MiniLM-L6-v2')
+    try:
+        embeddings = get_embeddings()
+        print(f"✅ Embedding model loaded successfully")
+    except Exception as e:
+        print(f"✗ Failed to initialize embedding model: {e}")
+        raise
     
     print("✅ API server ready!")
 
@@ -154,16 +169,47 @@ async def startup_event():
         initialize_components()
     except Exception as e:
         print(f"❌ Startup failed: {e}")
-        print("Please ensure Qdrant and Ollama are running")
+        print("Please ensure Qdrant is running and AI provider is properly configured")
 
 @app.get("/")
 async def root():
     """Health check endpoint."""
+    provider_info = get_provider_info()
     return {
         "status": "running",
         "title": "AI Choose Your Own Adventure API",
+        "ai_provider": provider_info['provider'],
+        "ai_model": provider_info['model'],
         "timestamp": datetime.now().isoformat()
     }
+
+@app.get("/api/connection-status")
+async def get_connection_status():
+    """Get AI provider connection status."""
+    provider_info = get_provider_info()
+    
+    try:
+        # Test connection
+        is_connected = test_ai_connection()
+        
+        return {
+            "provider": provider_info['provider'],
+            "model": provider_info['model'],
+            "base_url": provider_info['base_url'],
+            "connected": is_connected,
+            "status": "connected" if is_connected else "disconnected",
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "provider": provider_info['provider'],
+            "model": provider_info['model'],
+            "base_url": provider_info['base_url'],
+            "connected": False,
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
 @app.get("/api/stories", response_model=Dict[str, List[Story]])
 async def get_stories():
@@ -254,6 +300,7 @@ async def create_session(request: CreateSessionRequest):
             "chat_history": QdrantChatMessageHistory(
                 session_id=session_id,
                 qdrant_client=qdrant_client,
+                embeddings_model=embeddings,
                 collection_name="chat_histories"
             )
         }
@@ -261,73 +308,61 @@ async def create_session(request: CreateSessionRequest):
         # Store in memory
         active_sessions[session_id] = session_data
         
-        # Generate initial story message using AI
-        try:
-            # Create character summary for AI context
-            character_equipment = []
-            if request.weapon:
-                character_equipment.append(f"Weapon: {request.weapon}")
-            if request.skill:
-                character_equipment.append(f"Skill: {request.skill}")
-            if request.tool:
-                character_equipment.append(f"Tool: {request.tool}")
-            
-            character_summary = f"Character {request.characterName} has chosen:\n" + "\n".join([f"- {item}" for item in character_equipment])
-            
-            # Create initial prompt for AI
-            story_prompt = story_data.get('initial_prompt', 'You are the guide of an epic adventure.')
-            genre = story_data.get('genre', 'adventure')
-            setting = story_data.get('setting', 'Unknown Land')
-            
-            initial_ai_prompt = f"""You are the narrator and game master for this interactive story experience.
+        # Create engaging static opening message based on story data
+        story_name = story_data.get('name', 'Adventure')
+        description = story_data.get('description', '')
+        setting = story_data.get('setting', '')
+        genre = story_data.get('genre', '')
+        
+        # Create character introduction with equipment
+        character_intro = f"You are {request.characterName}"
+        equipment_parts = []
+        if request.weapon:
+            # Find weapon description
+            weapon_desc = next((w['description'] for w in story_data.get('weapons', []) if w['name'] == request.weapon), request.weapon)
+            equipment_parts.append(f"armed with {request.weapon} ({weapon_desc})")
+        if request.skill:
+            # Find skill description  
+            skill_desc = next((s['description'] for s in story_data.get('skills', []) if s['name'] == request.skill), request.skill)
+            equipment_parts.append(f"skilled in {request.skill} ({skill_desc})")
+        if request.tool:
+            # Find tool description
+            tool_desc = next((t['description'] for t in story_data.get('tools', []) if t['name'] == request.tool), request.tool)
+            equipment_parts.append(f"carrying {request.tool} ({tool_desc})")
+        
+        if equipment_parts:
+            character_intro += ", " + ", ".join(equipment_parts)
+        character_intro += "."
+        
+        # Create atmospheric opening based on genre
+        if genre == "noir":
+            scene_setting = f"The rain-slicked streets of {setting} gleam under the harsh glow of neon signs. Shadows dance between brick buildings, and the air is thick with cigarette smoke and secrets waiting to be uncovered."
+        elif genre == "fantasy":
+            scene_setting = f"The mystical realm of {setting} stretches before you, where ancient magic still flows through every leaf and stone. The air hums with possibility and danger."
+        elif genre == "pirate":
+            scene_setting = f"The salty sea air fills your lungs as {setting} comes into view. The sound of creaking ship timbers and distant seabirds creates an atmosphere of adventure and treachery."
+        elif genre == "sci-fi":
+            scene_setting = f"The gleaming corridors and pulsing lights of {setting} represent humanity's reach into the unknown. Technology and mystery intertwine in this futuristic landscape."
+        else:
+            scene_setting = f"You find yourself in {setting}, a place where adventure awaits around every corner."
+        
+        # Combine all elements
+        opening_message = f"""**Welcome to {story_name}!**
 
-STORY CONTEXT:
-- Genre: {genre}
-- Setting: {setting}
-- Story: {story_data.get('name', 'Adventure')}
+{description}
 
-CHARACTER SETUP:
-{character_summary}
+{scene_setting}
 
-STORY PROMPT:
-{story_prompt}
+{character_intro}
 
-This is the very beginning of the adventure. Create an engaging opening that:
-1. Sets the scene in the {setting}
-2. Introduces the character {request.characterName} naturally
-3. Mentions their equipment/abilities in context
-4. Provides an exciting opening scenario
-5. Ends with exactly 3 numbered choices for the player
+Your adventure begins now. The choices you make will shape your destiny in this world. What do you choose to do?
 
-Keep it engaging but concise (2-3 paragraphs). This is turn 1 of the adventure.
-
-IMPORTANT FORMAT REQUIREMENT:
-ALWAYS end your response with exactly 3 numbered choices:
-1. [First action]
-2. [Second action] 
-3. [Third action]
-
-Begin the adventure:"""
-
-            # Generate AI response for the opening
-            ai_response = llm.invoke(initial_ai_prompt)
-            
-            # Store the initial AI message
-            session_data["chat_history"].add_message(AIMessage(content=ai_response))
-            
-        except Exception as e:
-            print(f"Failed to generate initial story: {e}")
-            # Fallback to basic message if AI generation fails
-            fallback_message = f"Welcome to {story_data.get('name', 'Adventure')}!\n\n{story_data.get('description', '')}\n\nYou are {request.characterName}"
-            if request.weapon:
-                fallback_message += f", armed with {request.weapon}"
-            if request.skill:
-                fallback_message += f" and skilled in {request.skill}"
-            if request.tool:
-                fallback_message += f", carrying {request.tool}"
-            fallback_message += ".\n\nYour adventure begins now. What do you choose to do?\n\n1. Look around and assess the situation\n2. Call out to see if anyone is nearby\n3. Start moving forward cautiously"
-            
-            session_data["chat_history"].add_message(AIMessage(content=fallback_message))
+**1.** Look around and assess the situation
+**2.** Call out to see if anyone is nearby  
+**3.** Start moving forward cautiously"""
+        
+        # Store the static opening message - REMOVED: Let frontend trigger AI story generation
+        # session_data["chat_history"].add_message(AIMessage(content=opening_message))
         
         # Convert to response format
         story = Story(
@@ -503,36 +538,58 @@ async def get_messages(session_id: str):
                     )
                 messages.append(message)
         
-        # If still no messages, add fallback welcome message (shouldn't happen now)
+        # If still no messages, add enhanced fallback welcome message
         if not messages:
             story = session_data["story"]
             character = session_data["character"]
             
+            # Create enhanced character introduction with equipment descriptions
             character_intro = f"You are {character['name']}"
+            equipment_parts = []
             if character.get('weapon'):
-                character_intro += f", armed with {character['weapon']}"
+                # Find weapon description
+                weapon_desc = next((w['description'] for w in story.get('weapons', []) if w['name'] == character['weapon']), character['weapon'])
+                equipment_parts.append(f"armed with {character['weapon']} ({weapon_desc})")
             if character.get('skill'):
-                character_intro += f" and skilled in {character['skill']}"
+                # Find skill description  
+                skill_desc = next((s['description'] for s in story.get('skills', []) if s['name'] == character['skill']), character['skill'])
+                equipment_parts.append(f"skilled in {character['skill']} ({skill_desc})")
             if character.get('tool'):
-                character_intro += f", carrying {character['tool']}"
+                # Find tool description
+                tool_desc = next((t['description'] for t in story.get('tools', []) if t['name'] == character['tool']), character['tool'])
+                equipment_parts.append(f"carrying {character['tool']} ({tool_desc})")
+            
+            if equipment_parts:
+                character_intro += ", " + ", ".join(equipment_parts)
             character_intro += "."
             
-            welcome_content = f"Welcome to {story['name']}!\n\n{story['description']}\n\n{character_intro}\n\nYour adventure begins now. What do you choose to do?"
+            # Create atmospheric scene setting based on genre
+            setting = story.get('setting', '')
+            genre = story.get('genre', '')
+            if genre == "noir":
+                scene_setting = f"The rain-slicked streets of {setting} gleam under the harsh glow of neon signs. Shadows dance between brick buildings, and the air is thick with cigarette smoke and secrets waiting to be uncovered."
+            elif genre == "fantasy":
+                scene_setting = f"The mystical realm of {setting} stretches before you, where ancient magic still flows through every leaf and stone. The air hums with possibility and danger."
+            elif genre == "pirate":
+                scene_setting = f"The salty sea air fills your lungs as {setting} comes into view. The sound of creaking ship timbers and distant seabirds creates an atmosphere of adventure and treachery."
+            elif genre == "sci-fi":
+                scene_setting = f"The gleaming corridors and pulsing lights of {setting} represent humanity's reach into the unknown. Technology and mystery intertwine in this futuristic landscape."
+            else:
+                scene_setting = f"You find yourself in {setting}, a place where adventure awaits around every corner."
             
-            welcome_message = GameMessage(
-                id=str(uuid.uuid4()),
-                type='ai',
-                content=welcome_content,
-                timestamp=datetime.now().isoformat(),
-                choices=[
-                    "Look around and assess the situation",
-                    "Call out to see if anyone is nearby", 
-                    "Start moving forward cautiously",
-                    "Wait and listen carefully"
-                ],
-                turnNumber=1
-            )
-            messages.append(welcome_message)
+            welcome_content = f"""**Welcome to {story['name']}!**
+
+{story['description']}
+
+{scene_setting}
+
+{character_intro}
+
+Your adventure begins now. The choices you make will shape your destiny in this world. What do you choose to do?"""
+            
+        # Don't add static welcome content - let frontend trigger AI story generation
+        # if len(messages) == 0:
+        #     [removed static content generation]
         
         return {"messages": messages}
     except HTTPException:
@@ -555,33 +612,79 @@ async def send_message(request: SendMessageRequest):
         # Add user message to history
         chat_history.add_message(HumanMessage(content=request.message))
         
-        # Create a simple prompt for the AI
-        story_context = f"""
-You are the game master for an adventure story called "{story_data['name']}".
-Setting: {story_data['setting']}
-Genre: {story_data['genre']}
-Description: {story_data['description']}
+        # Create a rich, immersive prompt for the AI
+        is_first_message = len([msg for msg in chat_history.messages if isinstance(msg, HumanMessage)]) == 1
+        
+        if is_first_message:
+            # First message - create an immersive story opening
+            story_context = f"""
+{story_data['initial_prompt'].format(character_name=character_data['name'])}
 
-The player is {character_data['name']}.
+STORY SETTING: {story_data['setting']}
+GENRE: {story_data['genre'].title()}
+THEMES: {', '.join(story_data['themes'])}
+
+CHARACTER PROFILE:
+- Name: {character_data['name']}
+- Weapon: {character_data['weapon']}
+- Special Skill: {character_data['skill']}
+- Equipment: {character_data['tool']}
+
+STORYTELLING INSTRUCTIONS:
+1. Begin with a rich, atmospheric introduction that establishes the setting, mood, and immediate situation
+2. Seamlessly integrate the character's name, weapon, skill, and equipment into the opening scene
+3. Create an immersive scenario that reflects the {story_data['genre']} genre and {story_data['setting']} setting
+4. The opening should be 3-4 paragraphs long and highly descriptive
+5. End with the character facing their first meaningful decision
+6. Provide 4 distinct, meaningful choices that reflect different approaches (combat, stealth, social, creative)
+7. Make each choice showcase different aspects of the character's abilities
+
+PLAYER'S OPENING ACTION: {request.message}
+
+Now begin the adventure with a compelling, detailed opening that draws the player into the world of "{story_data['name']}".
+"""
+        else:
+            # Continuing story - shorter context
+            story_context = f"""
+You are the game master continuing an adventure story called "{story_data['name']}".
+Setting: {story_data['setting']} | Genre: {story_data['genre']} | Themes: {', '.join(story_data['themes'])}
+
+The player is {character_data['name']} (equipped with {character_data['weapon']}, skilled in {character_data['skill']}, carrying {character_data['tool']}).
+
 Player's action: {request.message}
 
-Continue the story based on the player's action. Be engaging and descriptive.
-At the end, provide 3-4 numbered choices for what the player can do next.
-Keep responses to 2-3 paragraphs maximum.
+Continue the story based on the player's action. Be engaging, descriptive, and true to the {story_data['genre']} genre.
+Provide 3-4 numbered choices for what the player can do next.
+Keep responses to 2-3 paragraphs.
 """
+        
+        print(f"DEBUG: Prompt length: {len(story_context)}")
+        print(f"DEBUG: First 200 chars of prompt: {story_context[:200]}")
         
         # Get AI response
         response = llm.invoke(story_context)
+        print(f"DEBUG: AI response type: {type(response)}")
+        print(f"DEBUG: AI response attributes: {dir(response)[:10]}")  # First 10 attributes
+        
+        # Extract content from AIMessage if needed
+        if hasattr(response, 'content'):
+            response_content = response.content
+            print(f"DEBUG: Raw content type: {type(response_content)}")
+            print(f"DEBUG: Raw content repr: {repr(response_content)[:100]}")
+        else:
+            response_content = str(response)
+        
+        print(f"DEBUG: Response content length: {len(response_content) if response_content else 0}")
         
         # Add AI response to history
-        chat_history.add_message(AIMessage(content=response))
+        chat_history.add_message(AIMessage(content=response_content))
         
         # Update session
         session_data["currentTurn"] += 1
         session_data["lastUpdated"] = datetime.now().isoformat()
         
         # Parse response for choices and content
-        content, choices = parse_choices_from_response(response)
+        content, choices = parse_choices_from_response(response_content)
         
         # Create AI message
         ai_message = GameMessage(

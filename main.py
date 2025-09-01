@@ -6,13 +6,13 @@ import json
 from typing import List, Dict, Any, Optional
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, PointStruct, Filter, FieldCondition, MatchValue
-from langchain_ollama import OllamaLLM
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from sentence_transformers import SentenceTransformer
+from ai_config import get_llm, test_ai_connection, get_provider_info, print_config_info, config
 import json
 
 # Suppress LaChain deprecation warnings for cleaner output
@@ -72,14 +72,31 @@ class StoryManager:
 class QdrantChatMessageHistory(BaseChatMessageHistory):
     """Custom chat message history using Qdrant vector database with session-specific collections."""
     
-    def __init__(self, session_id: str, qdrant_client: QdrantClient, collection_name: str = None):
+    def __init__(self, session_id: str, qdrant_client: QdrantClient, embeddings_model=None, collection_name: str = None):
         self.session_id = session_id
         self.client = qdrant_client
         # Create a unique collection name for this session if none provided
         self.collection_name = collection_name or f"chat_history_{session_id}"
-        self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
+        
+        # Use provided embeddings model or fallback to SentenceTransformer
+        if embeddings_model is not None:
+            self.embeddings_model = embeddings_model
+            self.use_langchain_embeddings = True
+        else:
+            self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
+            self.use_langchain_embeddings = False
+            
         self.turn_count = 0
         self._ensure_collection()
+    
+    def _encode_text(self, text: str) -> List[float]:
+        """Encode text using either LangChain embeddings or SentenceTransformer."""
+        if self.use_langchain_embeddings:
+            # LangChain embeddings return a list of floats directly
+            return self.embeddings_model.embed_query(text)
+        else:
+            # SentenceTransformer returns numpy array, convert to list
+            return self.encoder.encode(text).tolist()
         
     def _ensure_collection(self):
         """Ensure the collection exists in Qdrant."""
@@ -88,11 +105,15 @@ class QdrantChatMessageHistory(BaseChatMessageHistory):
             collection_names = [c.name for c in collections]
             
             if self.collection_name not in collection_names:
+                # Determine vector size by encoding a test string
+                test_embedding = self._encode_text("test")
+                vector_size = len(test_embedding)
+                
                 self.client.create_collection(
                     collection_name=self.collection_name,
-                    vectors_config=VectorParams(size=384, distance=Distance.COSINE)
+                    vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE)
                 )
-                print(f"Created collection: {self.collection_name}")
+                print(f"Created collection: {self.collection_name} (vector size: {vector_size})")
         except Exception as e:
             print(f"Error ensuring collection: {e}")
     
@@ -103,7 +124,7 @@ class QdrantChatMessageHistory(BaseChatMessageHistory):
             message_type = "human" if isinstance(message, HumanMessage) else "ai"
             
             # Create embedding
-            embedding = self.encoder.encode(message_text).tolist()
+            embedding = self._encode_text(message_text)
             
             # Create point
             point = PointStruct(
@@ -129,7 +150,7 @@ class QdrantChatMessageHistory(BaseChatMessageHistory):
         """Store the character name as metadata in the session."""
         try:
             # Create a special metadata point for character name
-            embedding = self.encoder.encode(f"Character name: {character_name}").tolist()
+            embedding = self._encode_text(f"Character name: {character_name}")
             
             point = PointStruct(
                 id=str(uuid.uuid4()),
@@ -153,7 +174,7 @@ class QdrantChatMessageHistory(BaseChatMessageHistory):
     def store_story_selection(self, story_id: str, story_name: str) -> None:
         """Store the selected story for this session."""
         try:
-            embedding = self.encoder.encode(f"Story selection: {story_name}").tolist()
+            embedding = self._encode_text(f"Story selection: {story_name}")
             
             point = PointStruct(
                 id=str(uuid.uuid4()),
@@ -240,7 +261,7 @@ class QdrantChatMessageHistory(BaseChatMessageHistory):
     def store_character_choice(self, choice_type: str, choice: str) -> None:
         """Store character creation choices (weapon, skill, tool)."""
         try:
-            embedding = self.encoder.encode(f"Character {choice_type}: {choice}").tolist()
+            embedding = self._encode_text(f"Character {choice_type}: {choice}")
             
             point = PointStruct(
                 id=str(uuid.uuid4()),
@@ -523,7 +544,7 @@ def display_story_selector(story_manager: StoryManager) -> str:
             print("Please enter a valid number.")
 
 # Add character creation display functions
-def handle_character_creation(message_history: 'QdrantChatMessageHistory', llm: OllamaLLM, character_name: str, story_data: dict) -> bool:
+def handle_character_creation(message_history: 'QdrantChatMessageHistory', llm, character_name: str, story_data: dict) -> bool:
     """Handle the character creation process using predefined story skills and weapons. Returns True when complete."""
     current_state = message_history.get_character_creation_state()
     
@@ -633,13 +654,15 @@ def select_existing_session(session_ids: List[str], qdrant_client: QdrantClient,
             print("Please enter a valid number.")
 
 def main():
-    print("Choose Your Own Adventure Game with Ollama & Qdrant!")
+    print("Choose Your Own Adventure Game with AI & Qdrant!")
     print("=" * 55)
     
-    # Configuration
-    OLLAMA_MODEL = "gemma3:12b"
-    QDRANT_HOST = "localhost"
-    QDRANT_PORT = 6333
+    # Display current AI configuration
+    print_config_info()
+    
+    # Configuration from environment
+    QDRANT_HOST = config.qdrant_host
+    QDRANT_PORT = config.qdrant_port
     
     try:
         # Initialize Qdrant client
@@ -656,17 +679,22 @@ def main():
         print("Loading story definitions from JSON...")
         story_manager = StoryManager("stories.json")
         
-        # Initialize Ollama
-        print(f"Initializing Ollama with model: {OLLAMA_MODEL}")
-        llm = OllamaLLM(model=OLLAMA_MODEL, base_url="http://localhost:11434")
-        
-        # Test Ollama connection
+        # Initialize AI Language Model
+        print("Initializing AI language model...")
         try:
-            test_response = llm.invoke("Hello")
-            print("✓ Ollama connection successful")
+            llm = get_llm()
+            print("✓ AI language model initialized")
         except Exception as e:
-            print(f"✗ Ollama connection failed: {e}")
-            print("Please ensure Ollama is running and the llama3:latest model is available")
+            print(f"✗ Failed to initialize AI language model: {e}")
+            return
+        
+        # Test AI connection
+        if not test_ai_connection():
+            provider_info = get_provider_info()
+            if provider_info['provider'] == 'ollama':
+                print("Please ensure Ollama is running and the model is available")
+            else:
+                print("Please check your OpenAI API key and network connection")
             return
         
         # Check for existing games
