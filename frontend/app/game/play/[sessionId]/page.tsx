@@ -371,7 +371,7 @@ export default function GamePlayPage() {
           {/* Messages Container - Fixed height with internal scroll */}
           <div className="flex-1 overflow-hidden" style={{ maxHeight: 'calc(100vh - 10rem)' }}>
             <ScrollArea className="h-full">
-              <div className="space-y-4 pr-4 pb-32 px-2">
+              <div className="space-y-4 pr-4 pb-40 px-2">
                 {messages && messages.length > 0 ? messages
                   .filter(message =>
                     message.content !== 'Begin the adventure and set the scene' &&
